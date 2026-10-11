@@ -51,6 +51,7 @@ pressure sensor, a flow meter.
 
 ## Documentation
 
+- [docs/capturing.md](docs/capturing.md) – how to record raw data from your machine
 - [docs/protocol.md](docs/protocol.md) – commands, display layouts and connection
   behaviour, as observed on real hardware
 
@@ -61,7 +62,7 @@ all change what the ito streams. If your setup behaves differently, a short capt
 the raw output helps more than anything else:
 
 ```sh
-(printf 'MC@\r\n'; sleep 5) | nc <ito-ip> 23 > capture.txt
+python3 tools/capture.py <ito-ip> my-machine --mode both
 ```
 
 Please replace your module ID and IP addresses before posting.
