@@ -263,7 +263,7 @@ Cold start (first frame 35.6 °C, display stream, no interaction for 55 min):
 | 0 s | first frame, 35.6 °C, heater 100 %, code `102`, pressure 0.0 bar |
 | 60 s | 48 °C, pressure 5.6 bar (thermal expansion, falls again later) |
 | 120 s | 74.6 °C, heater drops (62 %) |
-| 176 s | 89.6 °C, heater 16 %: code changes `102` → `002`. Meaning unclear (end of the heat-up phase?); no beep, no `READY` – so not the ready signal. **unverified** |
+| 176 s | 89.6 °C, heater 16 %: code changes `102` → `002` = display switches off 180 s after power-on (`Auto-off 180s`). **seen** |
 | 4–30 min | temperature oscillates 89.6–90.6 °C, heater 2–12 %, pressure falls 2.6 → 0.7 bar |
 | 1807 s | auto-**eco** (setup: `Eco 30m`): setpoint field shows `ECO`, heater 0 %, boiler cools to 76.6 °C |
 | 2714 s | auto-**standby** (setup: `Standby 45m`): `STANDBY` text |
