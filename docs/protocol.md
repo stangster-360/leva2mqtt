@@ -137,12 +137,12 @@ bar-graph and arrow glyphs. Strip them before parsing.
 | 21–26 / 27–32 / 33–38 | `0001.1` `0007.1` `0008.5` | PID terms P, I, D | **seen** |
 | 45–52 | `-00.0625` | Rate of temperature change, used by the D term | **seen** |
 | 53–57 / 58–62 / 63–67 | `009.4` `058.0` `014.5` | PID constants Kc, Ti, Td | **seen** |
-| 152–154 | `098` | Flow meter volume, ml | **seen** |
-| 155–159 | `00241` | Flow meter **pulses** (2.07–2.10 per ml: 241 pulses for 115 ml). Not a shot timer. | **seen** |
-| 160–162 | `500` | Flow meter rate in **ml/min** (not ×0.01 ml/s). In an empty-portafilter run the volume rose 111 ml in 13.4 s = 497 ml/min while the field averaged ~500, so counter and rate agree. The field stays within ±5 % of 500 during the run (filtered / interpolated), then decays (`335`, `066`, `000`) after the pump stops. The earlier "~40 % too low" reading came from assuming ×0.01 ml/s. | **seen** (one capture) |
-| 192–196 | `08.25` | Target pressure of the active profile, bar | **seen** |
+| 152–154 | `098` | Flow meter volume, ml. Counts from 0 when the pump starts. Reference run on a primed group, empty portafilter: counter 96 ml, scale 102.3 g (counter ~6 % low; in flight ~3–4 % low, and ~3 g more arrives after the pump stops). The first run (group not primed) showed the opposite sign, so check again with more runs before correcting by a factor. | **seen**, calibration **unverified** |
+| 155–159 | `00241` | Flow meter **pulses** (2.07–2.10 per ml: 241 pulses for 115 ml, 201 for 96 ml). Not a shot timer. | **seen** |
+| 160–162 | `500` | Flow meter rate in **ml/min** (not ×0.01 ml/s). In an empty-portafilter run the volume rose 111 ml in 13.4 s = 497 ml/min while the field averaged ~500, so counter and rate agree. The field stays within ±5 % of 500 during the run (filtered / interpolated), then decays (`335`, `066`, `000`) after the pump stops. The earlier "~40 % too low" reading came from assuming ×0.01 ml/s. | **seen** (two captures; second run: 90 ml in 11.1 s = 487 ml/min, field average ~490) |
+| 192–196 | `08.25` | Target pressure of the active profile, bar. In the second flow run it read `09.00` from the pump start and fell to `07.64` over the last 5 s (the lever decay). In the first flow run the same field showed 0.2–0.6 and no profile curve – why is **unverified** (different way of starting the pump?). | **seen** |
 | 197–201 / 202–206 / 207–211 | `08.20` `08.10` `08.45` | Brew pressure, bar – probably current, min, max of the last interval | **unverified** |
-| 226–230 | `042.1` | Scale weight, g | **seen** |
+| 226–230 | `042.1` | Scale weight, g. Matches the scale display (final 102.3 g in the frame, 102.3 g read off the scale). Reads `000.0` after the cup is removed. | **seen** |
 | 231–235 | `03.12` | Flow by weight, g/s | **seen** |
 | near end | `GEN.LEVER` | Active profile name | **seen** |
 | last 2 before `}` | `A9` | Probably a checksum – not a plain byte sum or XOR | **unverified** |
