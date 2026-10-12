@@ -1,0 +1,20 @@
+services:
+  leva2mqtt:
+    build: .
+    container_name: leva2mqtt
+    restart: unless-stopped
+    volumes:
+      - ./data:/data          # config.yaml (optional) and shots/; must be writable for uid 1000
+    environment:
+      MACHINE_HOST: 192.168.1.50
+      MACHINE_NAME: Silvia
+      MQTT_HOST: mosquitto
+      MQTT_USERNAME: leva2mqtt
+      MQTT_PASSWORD_FILE: /run/secrets/mqtt_password
+      TZ: Europe/Berlin
+    secrets:
+      - mqtt_password
+
+secrets:
+  mqtt_password:
+    file: ./mqtt_password.txt

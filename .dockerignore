@@ -1,0 +1,11 @@
+.git
+.github
+captures
+shots
+data
+tests
+tools
+docs
+*.md
+config.yaml
+**/__pycache__

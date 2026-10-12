@@ -4,9 +4,9 @@ MQTT bridge for espresso machines with the **ito** module running the **leva!** 
 It exposes live machine data to Home Assistant via MQTT Discovery, records every shot
 and can upload it to [Visualizer.coffee](https://visualizer.coffee).
 
-> **Status: early development.** Nothing here is ready to install yet. This repository
-> currently documents the machine protocol as it is being reverse-engineered.
-> The bridge itself will follow.
+> **Status: early development.** A first version of the bridge exists (see
+> [docs/bridge.md](docs/bridge.md)) but has not run against a real machine yet.
+> The machine protocol is still being reverse-engineered.
 
 ## Why
 
@@ -19,7 +19,7 @@ something a smart home can use:
 - buttons for wake / eco / standby and an audible setpoint report
 - one file per shot, in a format Visualizer.coffee accepts, with optional automatic upload
 
-## How it will work
+## How it works
 
 ```
 ito / leva!  ──telnet:23──▶  leva2mqtt  ──MQTT──▶  broker  ◀──▶  Home Assistant
@@ -29,15 +29,18 @@ ito / leva!  ──telnet:23──▶  leva2mqtt  ──MQTT──▶  broker  �
 
 - A single persistent connection to the ito. The bridge is meant to be the only client.
 - Entities are created automatically in Home Assistant through MQTT Discovery.
-- When the machine comes back (powered on, or woken from standby), the bridge sends
-  `MCcREPORT SP1` so the machine beeps its setpoint as an audible confirmation.
+- When the machine comes back (powered on, or woken from standby or eco), the bridge
+  sends `MCcREPORT SP1` so the machine beeps its setpoint as an audible confirmation.
+  A restart of the bridge does not beep.
+- MQTT, Visualizer upload and a Telegram message after each shot are independent
+  outputs; the bridge is useful without Home Assistant.
 
 ## Planned deployment
 
 - Docker image for amd64, arm64 and armv7 (Raspberry Pi included), configured with
-  environment variables
+  environment variables and an optional `config.yaml`
 - Home Assistant add-on built from the same image, with the add-on options form as UI
-- Plain Python for anything else (one dependency: `paho-mqtt`)
+- Plain Python 3.10+ for anything else (dependencies: `paho-mqtt`, `PyYAML`)
 
 ## Requirements
 
@@ -51,9 +54,11 @@ pressure sensor, a flow meter.
 
 ## Documentation
 
+- [docs/bridge.md](docs/bridge.md) – running the bridge, configuration, entities, detection rules in use
 - [docs/capturing.md](docs/capturing.md) – capture tool and playbook for recording raw data
 - [docs/protocol.md](docs/protocol.md) – commands, display layouts and connection
   behaviour, as observed on real hardware
+- [docs/detection-rules.md](docs/detection-rules.md) – how states, shots, steam and hot water are recognised
 
 ## Contributing
 

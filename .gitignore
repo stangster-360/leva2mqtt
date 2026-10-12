@@ -7,3 +7,6 @@ shots/
 captures/
 *.log
 .DS_Store
+config.yaml
+data/
+.pytest_cache/

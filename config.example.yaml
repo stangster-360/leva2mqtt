@@ -1,0 +1,45 @@
+# leva2mqtt configuration – copy to /data/config.yaml (or set LEVA2MQTT_CONFIG).
+# Every key can also be set as an environment variable <SECTION>_<KEY>,
+# e.g. machine.host -> MACHINE_HOST, mqtt.password -> MQTT_PASSWORD.
+# <VAR>_FILE reads the value from a file (Docker secrets).
+# Environment variables win over this file.
+
+machine:
+  host: 192.168.1.50        # ito module (required)
+  port: 23
+  name: Silvia              # device name in Home Assistant, used in messages
+  # id: silvia              # topic / entity id, default: derived from name
+
+mqtt:                       # leave host empty to run without MQTT / Home Assistant
+  host: mosquitto
+  port: 1883
+  username: ""
+  password: ""
+  tls: false
+  topic_prefix: leva2mqtt
+  discovery_prefix: homeassistant
+  publish_interval: 1.0     # s between live updates while idle (every frame while brewing)
+
+visualizer:                 # leave empty to disable the upload
+  username: ""              # Visualizer.coffee account e-mail
+  password: ""
+  upload: true              # start value of the "Upload shots to Visualizer" switch
+
+telegram:                   # leave empty to disable messages
+  token: ""                 # bot token from @BotFather
+  chat_id: ""
+  notify: true              # start value of the "Telegram shot message" switch
+
+shots:
+  directory: /data/shots    # queue (pending/) and archive; empty = memory only, lost on restart
+  keep: false               # keep a shot file after a successful Visualizer upload
+  dose: 18.0                # start value of the "Dose" entity, g
+  tail: 5.0                 # s after the pump stops that still count (drip into the cup)
+
+bridge:                     # detection thresholds – all unverified, see docs/bridge.md
+  report_min_offline: 10    # s offline before a reconnect counts as "machine reachable again"
+  ready_band: 0.25          # K around the setpoint
+  ready_hold: 240           # s inside the band until "ready"
+  steam_threshold: 100      # °C boiler temperature for steam mode
+
+log_level: INFO
