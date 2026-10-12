@@ -46,14 +46,15 @@ Placeholder: `<ito-ip>` for the module's address.
   `MCr` was sent on both connects. So the state is not limited to the seconds after a
   boot, and a single `MCr` after connect does not end it. Whether repeated `MCr` does:
   test with `capture.py --resend`. **seen**
-  `hb-resend` (with `--resend`): frames for 7.6 s, then **complete silence** (no frames,
-  no heartbeat) for 28 s – re-sent `MCr` had no effect – then the module reset the TCP
-  connection (reboot of the module, no power cycle noted). After the reconnect the
-  `MCr` sent at once was ignored and heartbeats came; the `MCr` re-sent 9.7 s later
-  brought frames within 0.36 s. So **re-sending `MCr` ends the heartbeat state**, and an
-  `MCr` sent in the first seconds after a module start is lost. **seen** (once)
+  `hb-resend` (with `--resend`): frames for 7.6 s, then the machine was switched off at
+  the plug (M.): 28 s of silence, then the TCP reset after the reboot (the known
+  power-loss pattern). After the reconnect the `MCr` sent at once was ignored and
+  heartbeats came; the `MCr` re-sent 9.7 s later brought frames within 0.36 s. So
+  **re-sending `MCr` ends the heartbeat state**, and an `MCr` sent in the first seconds
+  after power-on is lost. **seen** (once)
   Working explanation: the heartbeat is the module's own sign of life while the leva!
-  side is not reporting, e.g. because the report command was lost. **unverified** Bridge rule: while only heartbeats arrive, re-send
+  side is not reporting, e.g. because the report command came before leva! was ready.
+  **unverified** Bridge rule: while only heartbeats arrive, re-send
   `MCr` about every 5 s until frames come.
 - *From the Leva Companion's behaviour:* the module closes a connection after ~10 s
   without client input. **Not confirmed:** a client that sent nothing for 40 s while

@@ -14,7 +14,7 @@ a missing sensor never raises an error.
 | Machine reachable | frames arrive; reconnect every 2 s while the connect fails | **seen** |
 | Machine off / power loss | the TCP connection does not close. No frame for 2–3 s → treat as lost, close, reconnect. Send a bare newline every 5 s as keepalive (the first one after a reboot is answered with a TCP reset, then a reconnect works) | **seen** |
 | Heartbeat only (`$id: leva! (3.0)` once per second, no frames) | re-send `MCr` every 5 s until frames come. An `MCr` sent right after a module start is lost; a re-sent one brought frames within 0.4 s | **seen** (once) |
-| Complete silence (no frames, no heartbeat) | the watchdog above: reconnect after 2–3 s. Re-sending `MCr` did not help; the module reset the connection by itself after 28 s | **seen** (once) |
+| Complete silence (no frames, no heartbeat) | machine off: the watchdog above, reconnect after 2–3 s | **seen** |
 | Reachable again after power-on | module answers 4–20 s after power-on | **seen** |
 | Second client | works, both get the same frames. The report mode is global: `MC@` from one client switches all of them. The bridge should be the only client | **seen** |
 
@@ -95,6 +95,9 @@ at ~39 g for a 40 g target). **seen**
 - Alerts (`BACKFL`, `DSCALE`, `FILTER`, `REFILL`, `PROTECT`, `VALVE`, `ERR:…`) and
   `READY` appear only in display frames (`MC@`), which replace `MCr`. A second
   connection does not help (the mode is global, **seen**); switching modes costs
-  0.1–0.6 s of data. Open design question.
+  0.1–0.6 s of data.
+  **Tentative decision (M., 12.10.):** the bridge derives "ready" itself and, only while
+  idle (no `*`, no steam), switches to `MC@` for about a second every few minutes to read
+  maintenance alerts, then back to `MCr`. Final after the cold-start repeat.
 - Backflush: not captured (scenario 7).
 - Idle pressure is thermal expansion and no pump signal.
