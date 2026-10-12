@@ -36,6 +36,12 @@ Placeholder: `<ito-ip>` for the module's address.
   frames within 0.3 s. After the first cold start of the day (machine off for hours) the
   module was reachable within 17–20 s of switching on and delivered display frames at
   once, without any heartbeat. Why the state occurred and how long it lasts: **unknown**.
+  Seen again in the two-client capture (see below): after a power-on, client A received
+  only heartbeats for 7 s although it had sent `MCr` on connect and a keepalive newline;
+  `{…}` frames started the moment client B connected and sent `MCr`. Possible cause:
+  an `MCr` sent too soon after boot is ignored, or a new connection ends the state.
+  Not separable yet. **unverified**. Bridge rule: while only heartbeats arrive, re-send
+  `MCr` about every 5 s until frames come.
 - *From the Leva Companion's behaviour:* the module closes a connection after ~10 s
   without client input. **Not confirmed:** a client that sent nothing for 40 s while
   `MCr` was streaming (no keepalive) stayed connected. Not tested with display frames
@@ -80,7 +86,11 @@ Placeholder: `<ito-ip>` for the module's address.
   for 10 min), pump (2 min, 1:1 balance), paddle or the PCB temperature limit is breached;
   heat, pump and valve are then off until the machine is switched off, and the cause
   is shown in the info menu (line "Protect"). Cause here: **unknown**.
-- Assume **one client at a time**. Two clients in parallel: **unverified**.
+- Two clients in parallel work: both received the same `{…}` frames on the same 0.25 s
+  grid (identical timestamps), B joining and leaving did not disturb A (150 and 132
+  frames, no gap). **seen** (one capture, 1 min). Still the bridge should be the only
+  client, and a second client's `MC@` would probably switch the stream for both
+  (**unverified**).
 
 ## Commands
 

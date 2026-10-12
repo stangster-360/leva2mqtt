@@ -138,7 +138,7 @@ Without `--no-keepalive` the tool appends a bare `\n` every 5 s, which would com
 3. After "connected again", listen 60 s, `q`. Note the time from `# power on` to
    "connected again" and which kind of frames arrive first (`<…>` or `{…}`).
 
-### 10. Optional, last: second client – `client-a` / `client-b`
+### 10. Second client – `client-a` / `client-b` – done
 
 1. Terminal 1: `capture.py <ip> client-a --mode mcr`
 2. After 20 s, terminal 2: `capture.py <ip> client-b --mode mcr`
