@@ -137,14 +137,25 @@ Only use a fixed whitelist – several commands change PID values or toggle repo
 <CCC…text…>
 ```
 
-`CCC` is a three-digit code followed by the display text.
+`CCC` is a three-digit code followed by the display text. Decoded from the evening
+cold-start capture, where M. navigated the menu (**seen**):
+
+| Digit | Meaning |
+|---|---|
+| 1st | display on (`1`) / off (`0`). Turns `0` exactly 180 s after the last interaction or power-on (setup `Auto-off 180s`); turns `1` again with input or with `READY` |
+| 2nd | input event in this frame: `0` none, `1` encoder turned one way, `2` the other way, `3` click |
+| 3rd | screen: `2` main / shot screen, `1` menu |
+
+So `002` is simply "main screen, display off", not a machine state – the earlier
+readings (standby, "ready") are superseded by this.
 
 | Code seen | Screen |
 |---|---|
-| `002` | Idle screen: main-screen text once the machine is warm (`GEN.LEVER … 90.1ß 90.0ß 8% …`), `ECO` instead of the setpoint in eco, `STANDBY` in standby. The code does **not** tell these apart – use the text. **seen** |
-| `102` | Main screen while the machine is **heating up** (and shot screen). In the heat-up capture the code changed from `102` to `002` after 176 s, at 89.6 °C, heater 16 %. **seen** (one capture). This is **not** the ready signal: no beep and no `READY` text came with it. |
-| `101` | Menu |
-| `191` | Menu item being confirmed |
+| `102` / `002` | Main or shot screen, display on / off. Text shows `ECO` instead of the setpoint in eco, `STANDBY` in standby, `READY` for 10 s when ready – use the text |
+| `101` | Menu, display on |
+| `111` `121` `131` | Menu with encoder turn / turn / click |
+| `112` `122` `132` | Main screen with encoder turn / turn / click |
+| `191` | Menu item being confirmed (one older capture) |
 
 The text uses `ß` (0xDF) as degree sign and control characters `\x01`–`\x04` as
 bar-graph and arrow glyphs. Strip them before parsing.
@@ -283,6 +294,16 @@ Cold start (first frame 35.6 °C, display stream, no interaction for 55 min):
   "inside ±x K for 3 min" rule does not fit all three; the firmware's detection is more
   than a band check. Matches the manual's 3-minute window only as a lower bound.
   **unverified**
+- **Cold start in the evening** (`heatup-cold`, first frame 25.2 °C): setpoint reached
+  after about 3.7 min, `READY` at 20:09:52–20:10:02 (10 s), **about 12 min after
+  power-on** (the info menu's "On" counter gives leva!'s start as 19:57:50). Between
+  20:02 and 20:06 M. changed Eco/Standby in the menu. Displayed temperature 89.9–90.1 °C
+  from 20:06 on, heater 9 % → 6 %. The morning cold start (35.6 °C, temperature swinging
+  89.6–90.6 °C) gave no `READY` within 30 min. **seen**
+- **Another client switched the global mode during this capture**: at 20:00:15 someone
+  sent `MC?` (reply `XML=…`), `MCu` (setup dump) and `MC@`; from then on only display
+  frames came, so the `MCr` data (and the per-minute heater average) ends at 20:00:21.
+  `capture.py` now re-sends its own mode when the wrong kind of frame arrives. **seen**
 - The buzzer sequence for the ready beep is very short (10 × 30 ms on, 90 ms off in the
   setup dump) and the display switches off after 180 s (`Auto-off 180s`), so beep and
   `READY` are easy to miss. **seen** (setup dump)

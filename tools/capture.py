@@ -18,8 +18,9 @@ capture.py – record the raw telnet stream of an ito / leva! module with timest
   with !cr, !lf or !crlf to send it with that line ending once (e.g. '!lf MCR').
   Type 'q' to stop.
 
-While connected and no report/display frame has arrived for 5 s, the start command
-of the mode is sent again (logged). A command sent in the first seconds after the
+While connected and no frame of the chosen kind has arrived for 5 s, the start command
+of the mode is sent again (logged). This also undoes another client switching the
+report mode (it is global for the module). A command sent in the first seconds after the
 machine is switched on is lost, and the module then sends only '$id: leva! (3.0)'
 heartbeats. --no-resend turns this off.
 
@@ -44,6 +45,7 @@ PORT = 23
 KEEPALIVE_S = 5
 RETRY_S = 2
 START = {"mcr": ["MCr"], "display": ["MC@"], "none": []}
+WANTED = {"mcr": "{", "display": "<"}  # first character of the frames each mode asks for
 
 
 class Capture:
@@ -155,7 +157,7 @@ class Capture:
                             raw, buf = buf.split(b"\n", 1)
                             text = raw.rstrip(b"\r").decode("latin-1")
                             if text:
-                                if text[0] in "{<":
+                                if text[0] == WANTED.get(self.mode):
                                     self.last_frame = time.time()
                                 self.log(text)
                                 self.lines += 1
