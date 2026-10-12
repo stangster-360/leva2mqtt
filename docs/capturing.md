@@ -80,8 +80,10 @@ Done once at 35 °C start (not fully cold, ready beep did not come, see protocol
 **Repeat with a really cold machine** (next morning, off all night), changed settings:
 Eco 60 min, Standby 90 min (so the auto-eco cannot cut the detection window), ready
 beep sequence louder and longer (e.g. 150 ms on/off, 5×, check with the buzzer menu's
-*Test*). Do not touch the machine. Run with `--mode display` and note the time of any
-beep. Compare the log with the temperature and heater curve at that moment.
+*Test*). Do not touch the machine. Run with `--mode mcr` (fine temperature and the
+per-minute heater average at 73–77 are what the bridge's ready logic uses; `READY`
+itself was already captured in `heatup3`) and type `# ready beep` when it beeps. Keep it
+running for 30 min or until the heater average stops falling.
 
 Machine switched off for at least an hour.
 1. `capture.py <ip> heatup --mode display` (reports "offline" – expected). The display

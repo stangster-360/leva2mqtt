@@ -43,13 +43,24 @@ Transitions (the display text is not needed):
 
 ## 3. Heating and ready
 
-| Signal | Rule | Status |
-|---|---|---|
-| Heating up | awake and `f[7:13]` (temperature) more than 1.5 K below `f[13:19]` (setpoint) | **seen** |
-| At setpoint | `abs(temp − setpoint) ≤ 1.0` | **seen** |
-| Ready | no flag in `MCr`. In the display stream `READY` replaces the setpoint for 10 s (**seen**), so periodic `MC@` polling would usually miss it. Derived fallback: within ±0.25 K of the setpoint for 3 min; the firmware's own decision does not follow a simple band rule (3.0–6.5 min after a warm power-on) | **unverified** |
-| Heater output | `f[19:21]` in % | **seen** |
-| Average heater output last minute | `f[73:78]` | **seen** |
+The bridge decides "ready" itself and does not depend on the firmware's `READY`
+(sporadic, shown for only 10 s, only in the display stream). Proposal, thresholds to be
+set from the cold-start capture (**unverified**):
+
+| State | Rule |
+|---|---|
+| heating | awake and temperature `f[7:13]` more than 1.5 K below the setpoint `f[13:19]` |
+| boiler at temperature | temperature within ±0.5 K of the setpoint for 2 min. The boiler is hot, the group may still be cold |
+| ready (heat-soaked) | boiler at temperature **and** the heater has settled: the per-minute average output `f[73:78]` changed by less than 1 percentage point over the last 3 updates. While group and housing still take up heat the average keeps falling (cold start: still falling after ~20 min) |
+
+- A warm machine (power cycle, wake from eco) reaches "ready" quickly because the
+  average output is already low; a cold start takes much longer. That matches what a
+  barista would call "warmed up".
+- Leaving "ready": temperature more than 1.5 K below the setpoint outside a shot, eco,
+  standby or steam mode.
+- The firmware `READY` replaces the setpoint field for 10 s in display frames (**seen**);
+  the bridge may log it when it happens to be in display mode, nothing depends on it.
+- Heater output `f[19:21]` in %, per-minute average `f[73:78]`. **seen**
 
 ## 4. Brewing (needs `f[2] == "*"`)
 
@@ -96,8 +107,11 @@ at ~39 g for a 40 g target). **seen**
   `READY` appear only in display frames (`MC@`), which replace `MCr`. A second
   connection does not help (the mode is global, **seen**); switching modes costs
   0.1–0.6 s of data.
-  **Tentative decision (M., 12.10.):** the bridge derives "ready" itself and, only while
-  idle (no `*`, no steam), switches to `MC@` for about a second every few minutes to read
-  maintenance alerts, then back to `MCr`. Final after the cold-start repeat.
+  **Tentative decision (M., 12.10.):** `MCr` stays the data source. The bridge derives
+  "ready" itself and, only while idle (no `*`, no steam), switches to `MC@` for about a
+  second every few minutes to read maintenance alerts, then back to `MCr`. If a shot
+  starts in that second (display shows the shot screen), it switches back at once; at
+  most ~0.6 s of pre-infusion is lost, about 1 in 300 shots. Final after the cold-start
+  repeat.
 - Backflush: not captured (scenario 7).
 - Idle pressure is thermal expansion and no pump signal.
