@@ -93,10 +93,12 @@ Machine switched off for at least an hour.
 2. `# shot 1, dose 18.0 g, grind X`, pull a shot. 30 s, `# cup off`, `# flush`, flush.
 3. `# shot 2`, second shot without waiting. 30 s, `q`.
 
-### 4. Eco / standby / wake by command – `standby` – ~5 min
+### 4. Eco / standby / wake by command – `standby` – ~6 min
 
 1. `capture.py <ip> standby --mode mcr`
-2. 30 s apart: `MCe`, `MCa`, `MCE`, `MCa`, `MCcREPORT SP1`. Then `q`.
+2. 30 s apart: `MCa`, `MCe`, `MCa`, `MCE`, `MCa`, `MCe`, `MCcREPORT SP1`. Then `q`.
+   (If the machine is in eco at the start, the first `MCa` wakes it. The last two
+   commands answer the open question whether `MCcREPORT SP1` also wakes from eco.)
 3. Note after each command: *beep? display?* Expected from the captures so far: `MCr`
    keeps streaming through every state change.
 
@@ -118,12 +120,12 @@ Machine switched off for at least an hour.
 2. `# backflush start`, run the program, 30 s after it ends.
 3. Type `MC@` and record 30 s of display frames (the `BACKFL` alert is only visible there), `q`.
 
-### 8. Line endings – `eol` – ~2 min, machine awake
+### 8. Line endings – `eol` – ~2 min, machine awake – done (LF, CR accepted)
 
 1. `capture.py <ip> eol --mode none --no-keepalive`
 2. 10 s apart: `!lf MCR`, `!crlf MCR`, `!cr MCR`. 10 s, `q`.
 
-A `{…}` line within about a second after a `MCR` means that line ending was accepted.
+The module keeps the report mode of the previous client, so a capture may start with `{…}` frames. Then look for an **extra** frame about 0.05 s after the command instead of for any `{…}` line.
 Without `--no-keepalive` the tool appends a bare `\n` every 5 s, which would complete a
 `MCR\r` and make `CR` look accepted when it is not.
 

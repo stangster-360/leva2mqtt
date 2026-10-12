@@ -23,12 +23,14 @@ Placeholder: `<ito-ip>` for the module's address.
   `MCr` only `{…}` frames, never both. The switch takes effect within 0.1–0.5 s. **seen**
 - Display frames arrive at 10 per second (about 0.1 s apart), `MCr` frames at 4 per
   second. After `MCr` the first frame came 0.46 s later, and it was sent twice. **seen**
-- Accepted line endings: CR+LF works (**seen**); LF alone is said to work (**dev**).
-- On connect the module streams **display frames** (`<…>`) by default. **seen**
+- Accepted line endings: CR+LF, LF alone and CR alone all work (**seen**: each `MCR` sent with LF (2×) or CR (1×) was answered with an extra frame 0.05 s later; CR+LF is what the other commands use).
+- On connect the module streams **display frames** (`<…>`) by default. **seen** But the report mode seems to survive a disconnect: a connection that sent nothing started with `{…}` frames when the previous client had left `MCr` running, and with display frames when the previous one had ended in `MC@` (3 captures). A client therefore has to send its wanted mode (`MCr`) explicitly after every connect. **seen**, rule **unverified**
 - A heartbeat `$id: leva!` once per second is described by the developer, but has not
   appeared in any of our captures so far. **dev, unverified**
 - *From the Leva Companion's behaviour:* the module closes a connection after ~10 s
-  without client input. **unverified**
+  without client input. **Not confirmed:** a client that sent nothing for 40 s while
+  `MCr` was streaming (no keepalive) stayed connected. Not tested with display frames
+  only. **seen**
 - Waking the machine with `MCa`: in a Leva Companion log the output switched back to
   display frames. In our own capture `MCr` kept streaming through the wake-up, no new
   `MCr` was needed. **seen** (waking with the button: **unverified**)
@@ -52,7 +54,7 @@ Only use a fixed whitelist – several commands change PID values or toggle repo
 | `MC?` | Identify; replies `XML=leva!-XXXXXXXX` – probably the name of the matching XML definition file (firmware version), not a module ID | reply **seen**, meaning **unverified** |
 | `MC@` | Report display | **seen** |
 | `MCr` | Report sensor data continuously, 4 frames/s | **seen** |
-| `MCR` | Report sensor data once | **dev** |
+| `MCR` | Report sensor data once: inside a running `MCr` stream it adds one extra frame about 0.05 s after the command | **seen** |
 | `MCu` | Dump setup (read only) | **seen**, ~1100 lines in ~3 s |
 | `MCh` | Help / command list | **dev** |
 | `MCa` | Wake from energy saver; `MCr` keeps streaming | **seen** |
@@ -130,9 +132,9 @@ bar-graph and arrow glyphs. Strip them before parsing.
 | Pos. | Example | Meaning | Status |
 |---|---|---|---|
 | 2 | `-` / `*` | `*` = pump / brew program active. **Not** the same as "shot": it also stays set while the pump runs dry or water is drawn through the steam wand. | **seen** |
-| 4–6 | `PID` | Control mode of PID 1 (`PID`, `ECO`, `OFF`, `CLD`, `ATN` per developer). Only `PID` seen; standby showed `???` | partly **seen** |
+| 4–6 | `PID` | Control mode of PID 1 (`PID`, `ECO`, `OFF`, `CLD`, `ATN` per developer). `PID` when awake, `ECO` in eco (with the eco setpoint in the next field and no heater output), `???` in standby. `OFF`, `CLD`, `ATN` not seen | partly **seen** |
 | 7–12 | `090.15` | Boiler temperature °C | **seen** |
-| 13–18 | `090.00` | Setpoint °C | **seen** |
+| 13–18 | `090.00` | Setpoint °C (shows the eco setpoint `069.90` while in eco) | **seen** |
 | 19–20 | `17` | Heater output % (= P + I + D, clamped) | **seen** |
 | 21–26 / 27–32 / 33–38 | `0001.1` `0007.1` `0008.5` | PID terms P, I, D | **seen** |
 | 45–52 | `-00.0625` | Rate of temperature change, used by the D term | **seen** |
