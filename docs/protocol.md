@@ -40,8 +40,24 @@ Placeholder: `<ito-ip>` for the module's address.
   the main screen 0.14 s after the command and the machine started heating. **seen**
   The developer stated in 2018 that "almost any command" wakes it. Other commands
   (`MCR`, from eco): **unverified**.
+- `MCcREPORT SP1` also wakes the machine from **eco**: the setpoint field changed from
+  `069.90` to `090.00` 0.6 s after the command. **seen**
 - Beeps (heard, not in the capture): after `MCcREPORT SP1` in standby only the report
-  beep was heard, no separate wake-up beep. **unverified** for other commands.
+  beep (short + long) was heard, no separate wake-up beep. After `MCcREPORT SP1` in eco M.
+  heard a long beep pattern instead. The manual says the report is relative to the reset
+  setpoint (one short beep per °C below it, one long beep per °C above it, short + long
+  when equal), so in eco (69.9 °C against the reset value of 90.0 °C) about 20 short beeps
+  are expected. The number was not counted. **unverified**
+- Mode changes by command, MCr running (one capture, no gaps in the 4 frames/s stream):
+  `MCa` from eco: `ECO` → `PID` in 0.3 s; `MCe` from awake: `PID` → `ECO` in 0.1 s;
+  `MCE`: frame turns to `?1???…` in 0.3 s; `MCa` from standby: `PID` in 0.3 s. **seen**
+- After the `MCcREPORT SP1` from eco the machine showed the **PROTECT** alert at some
+  point (M.; the capture ends at 138 s because the Mac's battery ran out, 19 s after the
+  command). The frames up to then showed nothing unusual (heater output 8–11 %). The
+  manual says PROTECT is raised when an on-time limit of the heater (PID 1, high power
+  for 10 min), pump (2 min, 1:1 balance), paddle or the PCB temperature limit is breached;
+  heat, pump and valve are then off until the machine is switched off, and the cause
+  is shown in the info menu (line "Protect"). Cause here: **unknown**.
 - Assume **one client at a time**. Two clients in parallel: **unverified**.
 
 ## Commands
@@ -139,6 +155,7 @@ bar-graph and arrow glyphs. Strip them before parsing.
 | 21–26 / 27–32 / 33–38 | `0001.1` `0007.1` `0008.5` | PID terms P, I, D | **seen** |
 | 45–52 | `-00.0625` | Rate of temperature change, used by the D term | **seen** |
 | 53–57 / 58–62 / 63–67 | `009.4` `058.0` `014.5` | PID constants Kc, Ti, Td | **seen** |
+| 73–77 | `019.5` | Average heater output of PID 1 in % over the previous minute, updated about once per minute. Mean of the heater field over the window: 19.5 % → `019.5`, 0.0 % → `000.0` (steam capture). Matches the manual's "average output per minute". | **seen** |
 | 152–154 | `098` | Flow meter volume, ml. Counts from 0 when the pump starts. Reference run on a primed group, empty portafilter: counter 96 ml, scale 102.3 g (counter ~6 % low; in flight ~3–4 % low, and ~3 g more arrives after the pump stops). The first run (group not primed) showed the opposite sign, so check again with more runs before correcting by a factor. | **seen**, calibration **unverified** |
 | 155–159 | `00241` | Flow meter **pulses** (2.07–2.10 per ml: 241 pulses for 115 ml, 201 for 96 ml). Not a shot timer. | **seen** |
 | 160–162 | `500` | Flow meter rate in **ml/min** (not ×0.01 ml/s). In an empty-portafilter run the volume rose 111 ml in 13.4 s = 497 ml/min while the field averaged ~500, so counter and rate agree. The field stays within ±5 % of 500 during the run (filtered / interpolated), then decays (`335`, `066`, `000`) after the pump stops. The earlier "~40 % too low" reading came from assuming ×0.01 ml/s. | **seen** (two captures; second run: 90 ml in 11.1 s = 487 ml/min, field average ~490) |
@@ -149,8 +166,7 @@ bar-graph and arrow glyphs. Strip them before parsing.
 | near end | `GEN.LEVER` | Active profile name | **seen** |
 | last 2 before `}` | `A9` | Probably a checksum – not a plain byte sum or XOR | **unverified** |
 
-Not decoded yet: 39–44, 73–77 (changes during heat-up and shots), 212–225 (only during
-a profile), the `OFF` marker at 78–80.
+Not decoded yet: 39–44, 212–225 (only during a profile), the `OFF` marker at 78–80.
 
 There is **no shot timer** in the rich frame. Shot duration has to be measured by the
 client from the `*` flag and its own clock.

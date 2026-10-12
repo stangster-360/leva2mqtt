@@ -93,7 +93,7 @@ Machine switched off for at least an hour.
 2. `# shot 1, dose 18.0 g, grind X`, pull a shot. 30 s, `# cup off`, `# flush`, flush.
 3. `# shot 2`, second shot without waiting. 30 s, `q`.
 
-### 4. Eco / standby / wake by command – `standby` – ~6 min
+### 4. Eco / standby / wake by command – `standby` – ~6 min – done (log ends at 138 s)
 
 1. `capture.py <ip> standby --mode mcr`
 2. 30 s apart: `MCa`, `MCe`, `MCa`, `MCE`, `MCa`, `MCe`, `MCcREPORT SP1`. Then `q`.
