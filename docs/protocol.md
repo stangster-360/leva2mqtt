@@ -40,7 +40,12 @@ Placeholder: `<ito-ip>` for the module's address.
   only heartbeats for 7 s although it had sent `MCr` on connect and a keepalive newline;
   `{…}` frames started the moment client B connected and sent `MCr`. Possible cause:
   an `MCr` sent too soon after boot is ignored, or a new connection ends the state.
-  Not separable yet. **unverified**. Bridge rule: while only heartbeats arrive, re-send
+  Not separable yet. **unverified**.
+  `power-cycle3`: heartbeat-only from the first second (13:45, three minutes after a
+  normal two-client capture), through a power cycle and for 342 s after it, although
+  `MCr` was sent on both connects. So the state is not limited to the seconds after a
+  boot, and a single `MCr` after connect does not end it. Whether repeated `MCr` does:
+  test with `capture.py --resend`. **seen** Bridge rule: while only heartbeats arrive, re-send
   `MCr` about every 5 s until frames come.
 - *From the Leva Companion's behaviour:* the module closes a connection after ~10 s
   without client input. **Not confirmed:** a client that sent nothing for 40 s while
