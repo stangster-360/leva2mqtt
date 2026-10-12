@@ -121,8 +121,8 @@ Only use a fixed whitelist – several commands change PID values or toggle repo
 
 | Code seen | Screen |
 |---|---|
-| `002` | Standby: `<002   …   STANDBY   …>`. The same code was also seen once with main-screen text (`GEN.LEVER … 90.3ß … 17%`) – meaning of that case **unverified** |
-| `102` | Main screen and shot screen |
+| `002` | Idle screen: main-screen text once the machine is warm (`GEN.LEVER … 90.1ß 90.0ß 8% …`), `ECO` instead of the setpoint in eco, `STANDBY` in standby. The code does **not** tell these apart – use the text. **seen** |
+| `102` | Main screen while the machine is **heating up** (and shot screen). In the heat-up capture the code changed from `102` to `002` after 176 s, at 89.6 °C, heater 16 %. **seen** (one capture) |
 | `101` | Menu |
 | `191` | Menu item being confirmed |
 
@@ -221,6 +221,30 @@ measure. **dev**
 | Steam | Machine steam switch flipped at ~59 s (M.; the "steam on" note was typed shortly before). From then the boiler rose to 118.45 °C although the setpoint field stayed `090.00`, heater output was `00` and the PID P term strongly negative (−120 … −262): the heating happens outside the PID, through the steam switch of the machine, which bypasses the PID (confirmed by M.; the frame data fit it). The brew pressure sensor follows the boiler temperature (5.0 bar at 84 °C, 6.2 bar at 110 °C). Steam valve opened at ~175 s: temperature fell 118 → 106 °C and pressure fell to ~0.9 bar while steam was drawn, then valve closed; the switch stayed on, temperature rose again. Positions 73–77 stepped `013.3` → `036.7` → `019.5` → `000.0` during the steam phase (not decoded). One capture. |
 | Target pressure curve | `09.00` from pump start, falls after ~5.5 s by ~0.23 bar/s; 7.64 bar at 10.8 s in both shots. Depends on time since pump start, not on the puck. |
 | Idle pressure after a shot | 5.9 bar 10 s after the pump stopped, 4.2 bar after about a minute, 0.5–0.8 bar after a flush. Not usable as a "pump is running" signal. |
+
+## Heat-up and automatic eco / standby (`heatup`, display frames, **seen**, one capture)
+
+Cold start (first frame 35.6 °C, display stream, no interaction for 55 min):
+
+| Time | Event |
+|---|---|
+| 0 s | first frame, 35.6 °C, heater 100 %, code `102`, pressure 0.0 bar |
+| 60 s | 48 °C, pressure 5.6 bar (thermal expansion, falls again later) |
+| 120 s | 74.6 °C, heater drops (62 %) |
+| 176 s | 89.6 °C, heater 16 %: code changes `102` → `002`. Candidate for the **ready** moment, **unverified** |
+| 4–30 min | temperature oscillates 89.6–90.6 °C, heater 2–12 %, pressure falls 2.6 → 0.7 bar |
+| 1807 s | auto-**eco** (setup: `Eco 30m`): setpoint field shows `ECO`, heater 0 %, boiler cools to 76.6 °C |
+| 2714 s | auto-**standby** (setup: `Standby 45m`): `STANDBY` text |
+
+- No `READY` text appeared in 32 665 display frames, and no ready beep was heard
+  (the setup has a `Ready beep` item, its setting is not decoded). A parser cannot rely
+  on `READY`; "ready" has to be derived (temperature within a band of the setpoint, or
+  the `102` → `002` change). **seen**, rule **unverified**
+- The eco and standby timers count from power-on / last activity (30 min / 45 min
+  here), not from reaching the setpoint. Whether any serial command or a shot restarts
+  them: **unverified**.
+- A display frame `Auto save` appears while `MCu` walks through the setup menu
+  (end of the dump). It is an artefact of the dump, not a machine state. **seen**
 
 ## Setup dump (`MCu`)
 
