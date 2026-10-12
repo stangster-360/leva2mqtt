@@ -122,7 +122,7 @@ Only use a fixed whitelist – several commands change PID values or toggle repo
 | Code seen | Screen |
 |---|---|
 | `002` | Idle screen: main-screen text once the machine is warm (`GEN.LEVER … 90.1ß 90.0ß 8% …`), `ECO` instead of the setpoint in eco, `STANDBY` in standby. The code does **not** tell these apart – use the text. **seen** |
-| `102` | Main screen while the machine is **heating up** (and shot screen). In the heat-up capture the code changed from `102` to `002` after 176 s, at 89.6 °C, heater 16 %. **seen** (one capture) |
+| `102` | Main screen while the machine is **heating up** (and shot screen). In the heat-up capture the code changed from `102` to `002` after 176 s, at 89.6 °C, heater 16 %. **seen** (one capture). This is **not** the ready signal: no beep and no `READY` text came with it. |
 | `101` | Menu |
 | `191` | Menu item being confirmed |
 
@@ -231,15 +231,21 @@ Cold start (first frame 35.6 °C, display stream, no interaction for 55 min):
 | 0 s | first frame, 35.6 °C, heater 100 %, code `102`, pressure 0.0 bar |
 | 60 s | 48 °C, pressure 5.6 bar (thermal expansion, falls again later) |
 | 120 s | 74.6 °C, heater drops (62 %) |
-| 176 s | 89.6 °C, heater 16 %: code changes `102` → `002`. Candidate for the **ready** moment, **unverified** |
+| 176 s | 89.6 °C, heater 16 %: code changes `102` → `002`. Meaning unclear (end of the heat-up phase?); no beep, no `READY` – so not the ready signal. **unverified** |
 | 4–30 min | temperature oscillates 89.6–90.6 °C, heater 2–12 %, pressure falls 2.6 → 0.7 bar |
 | 1807 s | auto-**eco** (setup: `Eco 30m`): setpoint field shows `ECO`, heater 0 %, boiler cools to 76.6 °C |
 | 2714 s | auto-**standby** (setup: `Standby 45m`): `STANDBY` text |
 
 - No `READY` text appeared in 32 665 display frames, and no ready beep was heard
   (the setup has a `Ready beep` item, its setting is not decoded). A parser cannot rely
-  on `READY`; "ready" has to be derived (temperature within a band of the setpoint, or
-  the `102` → `002` change). **seen**, rule **unverified**
+  on `READY`. The firmware decides "ready" by steady-state detection on the temperature
+  of the last three minutes (manual, PID menu: *Ready-beep*), and the beep only comes
+  sporadically on this machine, also before the bridge existed. Until a capture
+  shows `READY` or the beep, the bridge has to derive "ready" itself (temperature
+  within a band of the setpoint for some minutes). **seen**, rule **unverified**
+- The buzzer sequence for the ready beep is very short (10 × 30 ms on, 90 ms off in the
+  setup dump) and the display switches off after 180 s (`Auto-off 180s`), so beep and
+  `READY` are easy to miss. **seen** (setup dump)
 - The eco and standby timers count from power-on / last activity (30 min / 45 min
   here), not from reaching the setpoint. Whether any serial command or a shot restarts
   them: **unverified**.

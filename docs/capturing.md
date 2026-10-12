@@ -71,7 +71,14 @@ Still open (optional): `MCR` in standby (`probe-mcR`), and `MCcREPORT SP1` from 
 3. `capture.py <ip> <run> --mode none --no-keepalive`, listen 30 s.
 4. Send the command, observe 60 s, add notes (*beep? display?*), `q`.
 
-### 1. Cold start and heat-up – `heatup` – ~30 min
+### 1. Cold start and heat-up – `heatup` – ~30 min – repeat open
+
+Done once at 35 °C start (not fully cold, ready beep did not come, see protocol.md).
+**Repeat with a really cold machine** (next morning, off all night), changed settings:
+Eco 60 min, Standby 90 min (so the auto-eco cannot cut the detection window), ready
+beep sequence louder and longer (e.g. 150 ms on/off, 5×, check with the buzzer menu's
+*Test*). Do not touch the machine. Run with `--mode display` and note the time of any
+beep. Compare the log with the temperature and heater curve at that moment.
 
 Machine switched off for at least an hour.
 1. `capture.py <ip> heatup --mode display` (reports "offline" – expected). The display
