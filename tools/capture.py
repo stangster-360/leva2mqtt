@@ -2,7 +2,7 @@
 """
 capture.py – record the raw telnet stream of an ito / leva! module with timestamps.
 
-    python3 capture.py <ito-ip> <name> [--mode mcr|display|none] [--resend] [--minutes N]
+    python3 capture.py <ito-ip> <name> [--mode mcr|display|none] [--no-resend] [--minutes N]
 
 - Writes ./captures/<date>_<time>_<name>.txt, one line per received line:
       <unix time> <line>
@@ -18,9 +18,10 @@ capture.py – record the raw telnet stream of an ito / leva! module with timest
   with !cr, !lf or !crlf to send it with that line ending once (e.g. '!lf MCR').
   Type 'q' to stop.
 
---resend: while connected and no report/display frame has arrived for 5 s, send the
-start command of the mode again (logged). Tests whether re-sending ends the
-heartbeat-only state ('$id: leva! (3.0)' without frames).
+While connected and no report/display frame has arrived for 5 s, the start command
+of the mode is sent again (logged). A command sent in the first seconds after the
+machine is switched on is lost, and the module then sends only '$id: leva! (3.0)'
+heartbeats. --no-resend turns this off.
 
 Line endings for commands: --eol crlf (default), lf or cr.
 
@@ -179,14 +180,14 @@ def main():
     ap.add_argument("--mode", choices=START, default="mcr")
     ap.add_argument("--eol", choices=["crlf", "lf", "cr"], default="crlf", help="line ending for commands")
     ap.add_argument("--no-keepalive", action="store_true", help="never send anything on its own")
-    ap.add_argument("--resend", action="store_true", help="re-send the start command while no frames arrive")
+    ap.add_argument("--no-resend", action="store_true", help="do not re-send the start command while no frames arrive")
     ap.add_argument("--minutes", type=float, default=0, help="stop after N minutes (0 = until 'q' or Ctrl+C)")
     a = ap.parse_args()
     os.makedirs("captures", exist_ok=True)
     path = os.path.join("captures", f"{datetime.now():%Y-%m-%d_%H%M%S}_{a.name}.txt")
     print(f"writing {path}  (command + Enter = send, '# text' = note, 'q' = stop)")
-    cap = Capture(a.host, path, a.mode, a.eol, not a.no_keepalive, a.resend)
-    cap.event(f"options: mode={a.mode} eol={a.eol} keepalive={not a.no_keepalive} resend={a.resend}")
+    cap = Capture(a.host, path, a.mode, a.eol, not a.no_keepalive, not a.no_resend)
+    cap.event(f"options: mode={a.mode} eol={a.eol} keepalive={not a.no_keepalive} resend={not a.no_resend}")
     try:
         cap.run(a.minutes)
     except KeyboardInterrupt:

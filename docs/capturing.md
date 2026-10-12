@@ -9,7 +9,7 @@ meant to answer. Results go into [protocol.md](protocol.md).
 [`tools/capture.py`](../tools/capture.py) – Python 3.8+, no dependencies.
 
 ```sh
-python3 tools/capture.py <ito-ip> <name> [--mode mcr|display|none] [--no-keepalive] [--minutes N]
+python3 tools/capture.py <ito-ip> <name> [--mode mcr|display|none] [--no-keepalive] [--no-resend] [--minutes N]
 ```
 
 - Writes `captures/<date>_<time>_<name>.txt`, every line prefixed with a Unix timestamp.
@@ -19,6 +19,9 @@ python3 tools/capture.py <ito-ip> <name> [--mode mcr|display|none] [--no-keepali
   is streamed at a time. To see both in one capture, switch by hand with `MC@` / `MCr`.
 - By default a bare newline is sent every 5 s to keep the connection open.
   `--no-keepalive` disables this: the tool then sends **nothing** on its own.
+- While no frame has arrived for 5 s, the start command is sent again. A command sent
+  in the first seconds after power-on is lost; without this the module only sends
+  `$id: leva! (3.0)` heartbeats. `--no-resend` disables it.
 - Reconnects automatically when the machine is switched off and logs when it is back.
 
 While recording:

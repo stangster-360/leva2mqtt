@@ -52,6 +52,11 @@ Placeholder: `<ito-ip>` for the module's address.
   heartbeats came; the `MCr` re-sent 9.7 s later brought frames within 0.36 s. So
   **re-sending `MCr` ends the heartbeat state**, and an `MCr` sent in the first seconds
   after power-on is lost. **seen** (once)
+  `heatup2ready`: power-on, `MC@` sent at the first connect 12 s later → only heartbeats
+  for the whole 6.5 min, no display frame. Third time the pattern "command right after
+  power-on → heartbeat state" was seen. A ready beep was heard at about 14:19:30–14:20:00,
+  roughly 6–6.5 min after power-on with a warm boiler (the earlier beep came ~6 min after
+  power-on too). No data from that run. **seen**
   Working explanation: the heartbeat is the module's own sign of life while the leva!
   side is not reporting, e.g. because the report command came before leva! was ready.
   **unverified** Bridge rule: while only heartbeats arrive, re-send
