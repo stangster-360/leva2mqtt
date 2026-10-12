@@ -2,7 +2,7 @@
 """
 capture.py – record the raw telnet stream of an ito / leva! module with timestamps.
 
-    python3 capture.py <ito-ip> <name> [--mode mcr|display|both|none] [--minutes N]
+    python3 capture.py <ito-ip> <name> [--mode mcr|display|none] [--minutes N]
 
 - Writes ./captures/<date>_<time>_<name>.txt, one line per received line:
       <unix time> <line>
@@ -21,7 +21,9 @@ capture.py – record the raw telnet stream of an ito / leva! module with timest
 Line endings for commands: --eol crlf (default), lf or cr.
 
 Modes: mcr = MCr (sensor frames), display = MC@ (display frames),
-       both = MCr followed by MC@, none = send nothing (observe default output).
+       none = send nothing (observe default output).
+       MCr and MC@ replace each other, they do not run in parallel. To get both
+       kinds of frames in one capture, type MC@ or MCr by hand to switch.
 
 Python 3.8+, standard library only.
 """
@@ -36,7 +38,7 @@ from datetime import datetime
 PORT = 23
 KEEPALIVE_S = 5
 RETRY_S = 2
-START = {"mcr": ["MCr"], "display": ["MC@"], "both": ["MCr", "MC@"], "none": []}
+START = {"mcr": ["MCr"], "display": ["MC@"], "none": []}
 
 
 class Capture:

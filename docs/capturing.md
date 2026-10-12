@@ -9,13 +9,14 @@ meant to answer. Results go into [protocol.md](protocol.md).
 [`tools/capture.py`](../tools/capture.py) – Python 3.8+, no dependencies.
 
 ```sh
-python3 tools/capture.py <ito-ip> <name> [--mode mcr|display|both|none] [--no-keepalive] [--minutes N]
+python3 tools/capture.py <ito-ip> <name> [--mode mcr|display|none] [--no-keepalive] [--minutes N]
 ```
 
 - Writes `captures/<date>_<time>_<name>.txt`, every line prefixed with a Unix timestamp.
   Lines starting with `#` are events (connect, disconnect, commands sent, notes).
 - `--mode`: what is sent on connect – `mcr` (sensor frames), `display` (display frames),
-  `both`, or `none` (nothing).
+  or `none` (nothing). `MCr` and `MC@` replace each other: only one kind of frame
+  is streamed at a time. To see both in one capture, switch by hand with `MC@` / `MCr`.
 - By default a bare newline is sent every 5 s to keep the connection open.
   `--no-keepalive` disables this: the tool then sends **nothing** on its own.
 - Reconnects automatically when the machine is switched off and logs when it is back.
@@ -41,39 +42,44 @@ Close every other client (e.g. other apps talking to the module) first.
 3. Water tank full – check before every scenario.
 4. Scale on and paired.
 
-**Rule:** every scenario that starts in standby runs with `--mode none --no-keepalive`.
-Otherwise the tool itself might wake the machine.
+**Rule:** every scenario that starts in standby runs with `--mode none --no-keepalive`
+(connecting, the keepalive, `MC@` and `MCr` did not wake the machine in our captures,
+but `MCcREPORT SP1` does – see scenario 0). That way the capture itself cannot influence
+the result.
+
+`MCr` and `MC@` replace each other. Pick the stream that answers the question:
+`mcr` for sensor data, `display` where the display text matters (`READY`, alerts).
 
 Note everything you see and hear as `#` notes, especially: *did it beep, did it wake up,
 what is on the display*.
 
-### 0. Passive standby series – `probe-*` – run first
+### 0. Standby probes – `probe-*`, `report-switch*` – done
 
 Question: does connecting, or a single command, wake the machine from standby?
 
-For every run:
+| Capture | What was sent | Result |
+|---|---|---|
+| `report-switch` | connect, keepalive, `MC@`, `MCr`, `MC@` in standby | no wake-up, display stays `STANDBY`; `MCr` and `MC@` replace each other |
+| `report-switch-awake` | `MCr` in standby, then `MCa`, `MC@`, `MCr`, `MC@`, `MCE` | `MCr` keeps streaming through the wake-up |
+| `probe-report` | `MCcREPORT SP1` in standby | **wakes the machine** (display `STANDBY` to main screen in 0.14 s); only the report beep was heard |
+
+Still open (optional): `MCR` in standby (`probe-mcR`), and `MCcREPORT SP1` from eco
+(`MCe` instead of `MCE`; `probe-report-eco`). Run them like this:
+
 1. Put the machine in standby: `capture.py <ip> to-standby --mode none`, send `MCE`, wait 5 s, `q`.
 2. Wait 30 s with no connection.
-3. `capture.py <ip> <run> --mode none --no-keepalive`
-4. Listen for 30 s.
-5. Send the command below, observe for 60 s, add notes, `q`.
-
-| Run | Name | Command after 30 s |
-|---|---|---|
-| 0a | `probe-idle` | none (listen 90 s) |
-| 0b | `probe-mcR` | `MCR` |
-| 0c | `probe-mcr` | `MCr` |
-| 0d | `probe-report` | `MCcREPORT SP1` |
-
-Optional: repeat 0c and 0d from eco (`MCe` in step 1) as `probe-mcr-eco`, `probe-report-eco`.
+3. `capture.py <ip> <run> --mode none --no-keepalive`, listen 30 s.
+4. Send the command, observe 60 s, add notes (*beep? display?*), `q`.
 
 ### 1. Cold start and heat-up – `heatup` – ~30 min
 
 Machine switched off for at least an hour.
-1. `capture.py <ip> heatup --mode both` (reports "offline" – expected).
+1. `capture.py <ip> heatup --mode display` (reports "offline" – expected). The display
+   stream is used because `READY` and alerts only appear there.
 2. `# power on`, switch on. Let it heat up, no shots.
-3. On the ready beep: `# READY beep`.
-4. After 2 more minutes: `MCu`, 10 s, `MCh`, 10 s, `q`.
+3. On the ready beep (if there is one): `# READY beep`.
+4. After 2 more minutes: `MCu`, 10 s, `MCh`, 10 s, then `MCr` for 60 s (sensor data of the
+   warm machine), `q`.
 
 ### 2. Flow meter reference – `flow-ref` – ~3 min
 
@@ -83,14 +89,16 @@ Machine switched off for at least an hour.
 
 ### 3. Two shots with a flush in between – `shots` – ~5 min
 
-1. `capture.py <ip> shots --mode both`
+1. `capture.py <ip> shots --mode mcr`
 2. `# shot 1, dose 18.0 g, grind X`, pull a shot. 30 s, `# cup off`, `# flush`, flush.
 3. `# shot 2`, second shot without waiting. 30 s, `q`.
 
 ### 4. Eco / standby / wake by command – `standby` – ~5 min
 
-1. `capture.py <ip> standby --mode both`
+1. `capture.py <ip> standby --mode mcr`
 2. 30 s apart: `MCe`, `MCa`, `MCE`, `MCa`, `MCcREPORT SP1`. Then `q`.
+3. Note after each command: *beep? display?* Expected from the captures so far: `MCr`
+   keeps streaming through every state change.
 
 ### 5. Wake with the machine's button, passive – `wake-button` – ~3 min
 
@@ -100,21 +108,24 @@ Machine switched off for at least an hour.
 
 ### 6. Hot water and steam – `water-steam` – ~5 min
 
-1. `capture.py <ip> water-steam --mode both`
+1. `capture.py <ip> water-steam --mode mcr`
 2. `# hot water`, draw some. `# steam on`, switch, purge briefly, `# steam off`.
    Wait until the temperature drops, `q`.
 
 ### 7. Backflush – `backflush` – only when due
 
-1. `capture.py <ip> backflush --mode both`
-2. `# backflush start`, run the program, 30 s after it ends, `q`.
+1. `capture.py <ip> backflush --mode mcr`
+2. `# backflush start`, run the program, 30 s after it ends.
+3. Type `MC@` and record 30 s of display frames (the `BACKFL` alert is only visible there), `q`.
 
 ### 8. Line endings – `eol` – ~2 min, machine awake
 
-1. `capture.py <ip> eol --mode none`
-2. 10 s apart: `!cr MCR`, `!lf MCR`, `!crlf MCR`. 10 s, `q`.
+1. `capture.py <ip> eol --mode none --no-keepalive`
+2. 10 s apart: `!lf MCR`, `!crlf MCR`, `!cr MCR`. 10 s, `q`.
 
-A `{…}` line after a `MCR` means that line ending was accepted.
+A `{…}` line within about a second after a `MCR` means that line ending was accepted.
+Without `--no-keepalive` the tool appends a bare `\n` every 5 s, which would complete a
+`MCR\r` and make `CR` look accepted when it is not.
 
 ### 9. Power cycle at the plug – `power-cycle` – ~4 min
 
@@ -132,13 +143,13 @@ A `{…}` line after a `MCR` means that line ending was accepted.
 
 | Question | Scenario |
 |---|---|
-| Does connecting / `MCR` / `MCr` / `MCcREPORT SP1` wake the machine from standby? | 0 |
-| Is a silent client disconnected? Is there a heartbeat? | 0a |
+| Does connecting / `MCR` / `MCr` / `MCcREPORT SP1` wake the machine from standby? | 0 (answered, `MCR` open) |
+| Is a silent client disconnected? Is there a heartbeat? | any capture without keepalive |
 | Heat-up time, when does READY appear, is the XML/firmware name announced on connect? | 1 |
 | Command list of the current firmware (`MCh`) | 1 |
 | Is the flow meter volume counter or the rate field correct? | 2 |
 | How to tell shots from flushes, hot water, steam, backflush | 3, 6, 7 |
-| Is `MCr` lost after waking up? | 4, 5 |
+| Is `MCr` lost after waking up? | 0 (answered for `MCa`), 5 (button) |
 | Accepted line endings | 8 |
 | How does the connection end at power-off, time from power-on to first data | 9 |
 | Two clients at once | 10 |

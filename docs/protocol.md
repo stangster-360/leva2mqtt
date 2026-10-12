@@ -19,16 +19,27 @@ Placeholder: `<ito-ip>` for the module's address.
 - The serial menu must be allowed in leva!: *Setup → Wifi → Permissions → Serial menu*,
   otherwise commands have no effect. **dev**
 - Commands can be sent while the `MCr` report is streaming. **seen**
+- `MCr` and `MC@` **replace each other**: after `MC@` only display frames arrive, after
+  `MCr` only `{…}` frames, never both. The switch takes effect within 0.1–0.5 s. **seen**
+- Display frames arrive at 10 per second (about 0.1 s apart), `MCr` frames at 4 per
+  second. After `MCr` the first frame came 0.46 s later, and it was sent twice. **seen**
 - Accepted line endings: CR+LF works (**seen**); LF alone is said to work (**dev**).
 - On connect the module streams **display frames** (`<…>`) by default. **seen**
 - A heartbeat `$id: leva!` once per second is described by the developer, but has not
   appeared in any of our captures so far. **dev, unverified**
 - *From the Leva Companion's behaviour:* the module closes a connection after ~10 s
   without client input. **unverified**
-- Waking the machine (`MCa`) switches the output back to display frames; `MCr` has to
-  be sent again afterwards. **seen** (in a Leva Companion log)
-- Whether connecting or sending a command wakes the machine from standby/eco is
-  **unverified**. The developer stated in 2018 that "almost any command" does.
+- Waking the machine with `MCa`: in a Leva Companion log the output switched back to
+  display frames. In our own capture `MCr` kept streaming through the wake-up, no new
+  `MCr` was needed. **seen** (waking with the button: **unverified**)
+- From standby, connecting, the keepalive newline, `MC@` and `MCr` do **not** wake the
+  machine (display stays `STANDBY`). **seen** (two captures)
+- `MCcREPORT SP1` **does** wake it from standby: the display changed from `STANDBY` to
+  the main screen 0.14 s after the command and the machine started heating. **seen**
+  The developer stated in 2018 that "almost any command" wakes it. Other commands
+  (`MCR`, from eco): **unverified**.
+- Beeps (heard, not in the capture): after `MCcREPORT SP1` in standby only the report
+  beep was heard, no separate wake-up beep. **unverified** for other commands.
 - Assume **one client at a time**. Two clients in parallel: **unverified**.
 
 ## Commands
@@ -44,9 +55,9 @@ Only use a fixed whitelist – several commands change PID values or toggle repo
 | `MCR` | Report sensor data once | **dev** |
 | `MCu` | Dump setup (read only) | **seen**, ~1100 lines in ~3 s |
 | `MCh` | Help / command list | **dev** |
-| `MCa` | Wake from energy saver | **seen** |
+| `MCa` | Wake from energy saver; `MCr` keeps streaming | **seen** |
 | `MCe` / `MCE` | Enter eco / standby | **seen** |
-| `MCcREPORT SP1` | Beep setpoint 1: short + long when the setpoint equals the PID reset value | **seen** |
+| `MCcREPORT SP1` | Beep setpoint 1: short + long when the setpoint equals the PID reset value. **Also wakes the machine from standby.** | **seen** |
 | `MC<space>` | Toggle reporting – avoid | **dev** |
 | `MC+` `MC-` `MCp/P` `MCi/I` `MCd/D` `MCw/W` | Change setpoint / PID values – never send | **dev** |
 
@@ -60,7 +71,7 @@ Only use a fixed whitelist – several commands change PID values or toggle repo
 
 | Code seen | Screen |
 |---|---|
-| `002` | Standby |
+| `002` | Standby: `<002   …   STANDBY   …>`. The same code was also seen once with main-screen text (`GEN.LEVER … 90.3ß … 17%`) – meaning of that case **unverified** |
 | `102` | Main screen and shot screen |
 | `101` | Menu |
 | `191` | Menu item being confirmed |
@@ -105,6 +116,14 @@ bar-graph and arrow glyphs. Strip them before parsing.
 - The developer describes field positions, lengths and types in an XML file that is part
   of the licensed firmware download. It is not included here. **dev**
 - In standby the frame is almost entirely `?`. **seen**
+  Set characters in all 63 standby frames of one capture: position 3 = `1`, positions
+  163–167 = `001.0` (not decoded), and the tail `~ 59`. Position 2 (`*`/`-`) and
+  positions 4–6 (`PID`) are `?`. All frames were identical. **seen**
+- Candidate rule for the state "awake": position 2 is `-` or `*`, or positions 4–6 read
+  `PID` (the other way round for standby). Seen in two captures with one transition each,
+  **unverified** as a rule (eco not captured yet).
+- After `MCa` the first rich frame came 0.29 s later with real values (boiler 61.5 °C,
+  heater 100 %). **seen**
 
 ### Decoded fields (0-based character positions)
 

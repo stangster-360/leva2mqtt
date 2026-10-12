@@ -62,7 +62,7 @@ all change what the ito streams. If your setup behaves differently, a short capt
 the raw output helps more than anything else:
 
 ```sh
-python3 tools/capture.py <ito-ip> my-machine --mode both
+python3 tools/capture.py <ito-ip> my-machine --mode mcr
 ```
 
 Please replace your module ID and IP addresses before posting.
