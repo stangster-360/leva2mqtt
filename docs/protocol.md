@@ -161,8 +161,9 @@ bar-graph and arrow glyphs. Strip them before parsing.
 - Last field: weight in `g` with a scale, otherwise volume in `ml`. **seen**
 - Alerts appear between setpoint and heater output and may blink: `BACKFL` (**seen**),
   `DSCALE`, `FILTER`, `REFILL`, `PROTECT`, `VALVE`, `ERR:…` (manual).
-- `READY` is shown only **briefly**, together with the ready beep. A parser has to
-  watch every frame to catch it. **seen** (observed on the machine, not yet in a capture)
+- `READY` replaces the **setpoint** field (`1: 89.9ß   READY 6% …`, code `102`) for
+  exactly **10 s** (100 consecutive frames, not blinking), together with the ready beep.
+  A parser has to watch every frame to catch it. **seen** (`heatup3`)
 
 ### Shot screen
 
@@ -273,6 +274,15 @@ Cold start (first frame 35.6 °C, display stream, no interaction for 55 min):
   In the heat-up capture without a beep the temperature swung 89.6–90.6 °C in slow
   cycles for 25 min. Candidate condition: temperature within about ±0.15–0.25 K of the
   setpoint for 3 min. **unverified** (one beep)
+- **`READY` captured** in `heatup3` (display stream, warm boiler): power cycle at about
+  14:24:04, frames again from 14:24:10 (after a re-sent `MC@`), `READY` from 14:27:01.9
+  to 14:27:11.9, beep heard. Time from power-on: **2 min 57 s**. Displayed temperature
+  89.6 °C for the first ~1.5 min, then 89.9–90.1 °C for 1 min 20 s before `READY`;
+  heater 1–8 %. **seen**
+  Power-on to beep in the three warm runs: ~3.0 min, ~5.7 min, ~6–6.5 min. A simple
+  "inside ±x K for 3 min" rule does not fit all three; the firmware's detection is more
+  than a band check. Matches the manual's 3-minute window only as a lower bound.
+  **unverified**
 - The buzzer sequence for the ready beep is very short (10 × 30 ms on, 90 ms off in the
   setup dump) and the display switches off after 180 s (`Auto-off 180s`), so beep and
   `READY` are easy to miss. **seen** (setup dump)
