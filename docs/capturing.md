@@ -106,7 +106,7 @@ Machine switched off for at least an hour.
 2. `capture.py <ip> wake-button --mode none --no-keepalive`
 3. Listen 30 s, `# button`, wake the machine, 60 s, `q`.
 
-### 6. Hot water and steam – `water-steam` – ~5 min
+### 6. Hot water and steam – `water-steam` – ~5 min – done
 
 1. `capture.py <ip> water-steam --mode mcr`
 2. `# hot water`, draw some. `# steam on`, switch, purge briefly, `# steam off`.
