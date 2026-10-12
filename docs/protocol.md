@@ -45,7 +45,15 @@ Placeholder: `<ito-ip>` for the module's address.
   normal two-client capture), through a power cycle and for 342 s after it, although
   `MCr` was sent on both connects. So the state is not limited to the seconds after a
   boot, and a single `MCr` after connect does not end it. Whether repeated `MCr` does:
-  test with `capture.py --resend`. **seen** Bridge rule: while only heartbeats arrive, re-send
+  test with `capture.py --resend`. **seen**
+  `hb-resend` (with `--resend`): frames for 7.6 s, then **complete silence** (no frames,
+  no heartbeat) for 28 s – re-sent `MCr` had no effect – then the module reset the TCP
+  connection (reboot of the module, no power cycle noted). After the reconnect the
+  `MCr` sent at once was ignored and heartbeats came; the `MCr` re-sent 9.7 s later
+  brought frames within 0.36 s. So **re-sending `MCr` ends the heartbeat state**, and an
+  `MCr` sent in the first seconds after a module start is lost. **seen** (once)
+  Working explanation: the heartbeat is the module's own sign of life while the leva!
+  side is not reporting, e.g. because the report command was lost. **unverified** Bridge rule: while only heartbeats arrive, re-send
   `MCr` about every 5 s until frames come.
 - *From the Leva Companion's behaviour:* the module closes a connection after ~10 s
   without client input. **Not confirmed:** a client that sent nothing for 40 s while
@@ -93,9 +101,10 @@ Placeholder: `<ito-ip>` for the module's address.
   is shown in the info menu (line "Protect"). Cause here: **unknown**.
 - Two clients in parallel work: both received the same `{…}` frames on the same 0.25 s
   grid (identical timestamps), B joining and leaving did not disturb A (150 and 132
-  frames, no gap). **seen** (one capture, 1 min). Still the bridge should be the only
-  client, and a second client's `MC@` would probably switch the stream for both
-  (**unverified**).
+  frames, no gap). **seen** (one capture, 1 min).
+- The report mode is **global for the module**, not per connection: client A had sent
+  `MCr`, client B connected and sent `MC@`, and from then on **both** received display
+  frames. Two connections cannot carry `MCr` and `MC@` at the same time. **seen**
 
 ## Commands
 

@@ -13,9 +13,10 @@ a missing sensor never raises an error.
 | Connected | send `MCr` after every connect (the report mode of a previous client may linger) | **seen** |
 | Machine reachable | frames arrive; reconnect every 2 s while the connect fails | **seen** |
 | Machine off / power loss | the TCP connection does not close. No frame for 2–3 s → treat as lost, close, reconnect. Send a bare newline every 5 s as keepalive (the first one after a reboot is answered with a TCP reset, then a reconnect works) | **seen** |
-| Heartbeat only (`$id: leva! (3.0)` once per second, no frames) | re-send `MCr` every 5 s until frames come. Seen after power-on for 7 s to ≥ 2 min; ended when a second connection sent `MCr` | **unverified** |
+| Heartbeat only (`$id: leva! (3.0)` once per second, no frames) | re-send `MCr` every 5 s until frames come. An `MCr` sent right after a module start is lost; a re-sent one brought frames within 0.4 s | **seen** (once) |
+| Complete silence (no frames, no heartbeat) | the watchdog above: reconnect after 2–3 s. Re-sending `MCr` did not help; the module reset the connection by itself after 28 s | **seen** (once) |
 | Reachable again after power-on | module answers 4–20 s after power-on | **seen** |
-| Second client | works, both get the same frames. The bridge should be the only one | **seen**, 1 min |
+| Second client | works, both get the same frames. The report mode is global: `MC@` from one client switches all of them. The bridge should be the only client | **seen** |
 
 ## 2. Machine state (from `f[4:7]` and `f[2]`)
 
@@ -92,7 +93,8 @@ at ~39 g for a 40 g target). **seen**
 ## 6. Not detectable with `MCr` (yet)
 
 - Alerts (`BACKFL`, `DSCALE`, `FILTER`, `REFILL`, `PROTECT`, `VALVE`, `ERR:…`) and
-  `READY` appear only in display frames (`MC@`), which replace `MCr`. A second stream is
-  not possible; switching modes costs 0.1–0.6 s of data. Open design question.
+  `READY` appear only in display frames (`MC@`), which replace `MCr`. A second
+  connection does not help (the mode is global, **seen**); switching modes costs
+  0.1–0.6 s of data. Open design question.
 - Backflush: not captured (scenario 7).
 - Idle pressure is thermal expansion and no pump signal.
