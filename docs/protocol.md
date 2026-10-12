@@ -138,8 +138,8 @@ bar-graph and arrow glyphs. Strip them before parsing.
 | 45–52 | `-00.0625` | Rate of temperature change, used by the D term | **seen** |
 | 53–57 / 58–62 / 63–67 | `009.4` `058.0` `014.5` | PID constants Kc, Ti, Td | **seen** |
 | 152–154 | `098` | Flow meter volume, ml | **seen** |
-| 155–159 | `00207` | Flow meter **pulses** (≈ 2.07 per ml). Not a shot timer. | **seen** |
-| 160–162 | `238` | Flow meter rate ×0.01 – matches the volume at low flow, but reads ~40 % lower than the volume counter at high flow | **unverified** |
+| 155–159 | `00241` | Flow meter **pulses** (2.07–2.10 per ml: 241 pulses for 115 ml). Not a shot timer. | **seen** |
+| 160–162 | `500` | Flow meter rate in **ml/min** (not ×0.01 ml/s). In an empty-portafilter run the volume rose 111 ml in 13.4 s = 497 ml/min while the field averaged ~500, so counter and rate agree. The field stays within ±5 % of 500 during the run (filtered / interpolated), then decays (`335`, `066`, `000`) after the pump stops. The earlier "~40 % too low" reading came from assuming ×0.01 ml/s. | **seen** (one capture) |
 | 192–196 | `08.25` | Target pressure of the active profile, bar | **seen** |
 | 197–201 / 202–206 / 207–211 | `08.20` `08.10` `08.45` | Brew pressure, bar – probably current, min, max of the last interval | **unverified** |
 | 226–230 | `042.1` | Scale weight, g | **seen** |
