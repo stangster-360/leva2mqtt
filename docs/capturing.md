@@ -129,7 +129,7 @@ The module keeps the report mode of the previous client, so a capture may start 
 Without `--no-keepalive` the tool appends a bare `\n` every 5 s, which would complete a
 `MCR\r` and make `CR` look accepted when it is not.
 
-### 9. Power cycle at the plug – `power-cycle` – ~4 min
+### 9. Power cycle at the plug – `power-cycle` – ~4 min – done, report mode after power cycle still open
 
 1. `capture.py <ip> power-cycle --mode mcr` (**with** keepalive). A first run with
    `--no-keepalive` showed that the module does not close the connection when it loses

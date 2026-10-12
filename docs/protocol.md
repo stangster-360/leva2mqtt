@@ -25,8 +25,12 @@ Placeholder: `<ito-ip>` for the module's address.
   second. After `MCr` the first frame came 0.46 s later, and it was sent twice. **seen**
 - Accepted line endings: CR+LF, LF alone and CR alone all work (**seen**: each `MCR` sent with LF (2×) or CR (1×) was answered with an extra frame 0.05 s later; CR+LF is what the other commands use).
 - On connect the module streams **display frames** (`<…>`) by default. **seen** But the report mode seems to survive a disconnect: a connection that sent nothing started with `{…}` frames when the previous client had left `MCr` running, and with display frames when the previous one had ended in `MC@` (3 captures). A client therefore has to send its wanted mode (`MCr`) explicitly after every connect. **seen**, rule **unverified**
-- A heartbeat `$id: leva!` once per second is described by the developer, but has not
-  appeared in any of our captures so far. **dev, unverified**
+- A heartbeat `$id: leva!` once per second is described by the developer. It appeared
+  as `$id: leva! (3.0)`, exactly once per second (118 s without a gap), in one capture in
+  which the module sent **no** `{…}` frames although `MCr` was sent (twice, also after a
+  reconnect). It never appeared in any capture in which the machine delivered report or
+  display frames. The state of the machine during that capture is unknown, so what the
+  heartbeat means (module alive, machine side silent?) is **unverified**. **seen**
 - *From the Leva Companion's behaviour:* the module closes a connection after ~10 s
   without client input. **Not confirmed:** a client that sent nothing for 40 s while
   `MCr` was streaming (no keepalive) stayed connected. Not tested with display frames
@@ -40,9 +44,13 @@ Placeholder: `<ito-ip>` for the module's address.
   sent nothing (no keepalive) saw the frames stop and then nothing at all – no FIN, no
   reset, no error – for 60 s after the power came back. A client has to notice the missing
   frames itself (watchdog, e.g. no frame for 2–3 s while `MCr` is streaming) and
-  reconnect. Whether writing to the dead connection triggers a reset once the module is
-  up again, how long the module needs to boot, and which report mode it starts with after
-  a power cycle: **unverified**, see scenario 9. **seen** (one capture)
+  reconnect. **seen** (one capture)
+- With the 5 s keepalive newline on, the first newline after the module was back up was
+  answered with a TCP reset (`Connection reset by peer`), the reconnect then worked
+  immediately. The module was reachable again 4–9 s after switching on (the keepalive
+  period and the moment of the switch limit the precision). **seen** (one capture)
+- The report mode after a power cycle could not be determined (see the heartbeat
+  remark above). **unverified**
 - From standby, connecting, the keepalive newline, `MC@` and `MCr` do **not** wake the
   machine (display stays `STANDBY`). **seen** (two captures)
 - `MCcREPORT SP1` **does** wake it from standby: the display changed from `STANDBY` to
