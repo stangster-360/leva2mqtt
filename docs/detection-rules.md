@@ -47,7 +47,7 @@ Transitions (the display text is not needed):
 |---|---|---|
 | Heating up | awake and `f[7:13]` (temperature) more than 1.5 K below `f[13:19]` (setpoint) | **seen** |
 | At setpoint | `abs(temp − setpoint) ≤ 1.0` | **seen** |
-| Ready | no reliable signal. The firmware's own ready beep is sporadic and `READY` was never captured. Derived: at setpoint for N minutes (N to be set from the cold-start repeat, start with 3 min) | **unverified** |
+| Ready | no flag in `MCr`. The firmware's own ready beep is sporadic. One beep came after 3–4 min with the temperature inside ±0.15 K of the setpoint. Derived: within ±0.25 K for 3 min (band and duration to be confirmed with the cold-start repeat) | **unverified** |
 | Heater output | `f[19:21]` in % | **seen** |
 | Average heater output last minute | `f[73:78]` | **seen** |
 

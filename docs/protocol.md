@@ -258,6 +258,16 @@ Cold start (first frame 35.6 °C, display stream, no interaction for 55 min):
   sporadically on this machine, also before the bridge existed. Until a capture
   shows `READY` or the beep, the bridge has to derive "ready" itself (temperature
   within a band of the setpoint for some minutes). **seen**, rule **unverified**
+- **First ready beep heard** (M.) at about 14:07:27 in `hb-resend` (`MCr` stream; time
+  from M.'s message, ±10 s), about 6 min after a power cycle with the boiler still warm.
+  No character of the `MCr` frame changed at that moment apart from the always-moving
+  fields (pressure, checksum, the per-minute average at 73–77), so there is **no ready
+  flag in `MCr`**. **seen**
+  Temperature before the beep: 89.90–90.15 °C (setpoint 90.0) from 14:03:24 on, i.e.
+  3–4 min inside a ±0.15 K band, rate field 45–52 constantly `000.0000`, heater 3–6 %.
+  In the heat-up capture without a beep the temperature swung 89.6–90.6 °C in slow
+  cycles for 25 min. Candidate condition: temperature within about ±0.15–0.25 K of the
+  setpoint for 3 min. **unverified** (one beep)
 - The buzzer sequence for the ready beep is very short (10 × 30 ms on, 90 ms off in the
   setup dump) and the display switches off after 180 s (`Auto-off 180s`), so beep and
   `READY` are easy to miss. **seen** (setup dump)
