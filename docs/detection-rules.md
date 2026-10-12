@@ -16,7 +16,7 @@ a missing sensor never raises an error.
 | Heartbeat only (`$id: leva! (3.0)` once per second, no frames) | re-send `MCr` every 5 s until frames come. An `MCr` sent right after a module start is lost; a re-sent one brought frames within 0.4 s | **seen** (once) |
 | Complete silence (no frames, no heartbeat) | machine off: the watchdog above, reconnect after 2–3 s | **seen** |
 | Reachable again after power-on | module answers 4–20 s after power-on | **seen** |
-| Wrong kind of frames (display frames while the bridge wants `MCr`, outside its own alert poll) | another client switched the global mode (seen: a client sending `MC?`, `MCu`, `MC@`). Re-send `MCr` and log it | **seen** |
+| Wrong kind of frames (display frames while the bridge wants `MCr`, outside its own alert poll) | another client switched the global mode. Seen with the Leva Companion app: an `XML=…` line and a setup dump appear in the stream, then display frames. Re-sending `MCr` at once would break the app's display, so: expose "other client active" in HA, keep publishing what the display frames carry (temperature, setpoint, heater, pressure, weight), and switch back to `MCr` only after no `XML=`/dump lines and no display input events for a few minutes. Interval **unverified** | **seen** (cause), handling **proposal** |
 | Second client | works, both get the same frames. The report mode is global: `MC@` from one client switches all of them. The bridge should be the only client | **seen** |
 
 ## 2. Machine state (from `f[4:7]` and `f[2]`)

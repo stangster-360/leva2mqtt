@@ -300,8 +300,9 @@ Cold start (first frame 35.6 °C, display stream, no interaction for 55 min):
   20:02 and 20:06 M. changed Eco/Standby in the menu. Displayed temperature 89.9–90.1 °C
   from 20:06 on, heater 9 % → 6 %. The morning cold start (35.6 °C, temperature swinging
   89.6–90.6 °C) gave no `READY` within 30 min. **seen**
-- **Another client switched the global mode during this capture**: at 20:00:15 someone
-  sent `MC?` (reply `XML=…`), `MCu` (setup dump) and `MC@`; from then on only display
+- **Another client switched the global mode during this capture**: at 20:00:15 the Leva
+  Companion app (confirmed by M.) connected; its effect on the stream: `MC?` reply
+  `XML=…`, a setup dump as after `MCu`, then display frames; from then on only display
   frames came, so the `MCr` data (and the per-minute heater average) ends at 20:00:21.
   `capture.py` now re-sends its own mode when the wrong kind of frame arrives. **seen**
 - The buzzer sequence for the ready beep is very short (10 × 30 ms on, 90 ms off in the
