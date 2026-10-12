@@ -31,6 +31,11 @@ Placeholder: `<ito-ip>` for the module's address.
   reconnect). It never appeared in any capture in which the machine delivered report or
   display frames. The state of the machine during that capture is unknown, so what the
   heartbeat means (module alive, machine side silent?) is **unverified**. **seen**
+  The state started about 2.4 min after a power-on and survived a second power cycle
+  (at least 48 s after switching on); a plain connection 5 min later delivered `{…}`
+  frames within 0.3 s. After the first cold start of the day (machine off for hours) the
+  module was reachable within 17–20 s of switching on and delivered display frames at
+  once, without any heartbeat. Why the state occurred and how long it lasts: **unknown**.
 - *From the Leva Companion's behaviour:* the module closes a connection after ~10 s
   without client input. **Not confirmed:** a client that sent nothing for 40 s while
   `MCr` was streaming (no keepalive) stayed connected. Not tested with display frames
