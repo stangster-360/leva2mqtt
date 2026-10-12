@@ -51,7 +51,7 @@ pressure sensor, a flow meter.
 
 ## Documentation
 
-- [docs/capturing.md](docs/capturing.md) – how to record raw data from your machine
+- [docs/capturing.md](docs/capturing.md) – capture tool and playbook for recording raw data
 - [docs/protocol.md](docs/protocol.md) – commands, display layouts and connection
   behaviour, as observed on real hardware
 

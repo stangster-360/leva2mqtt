@@ -7,13 +7,18 @@ capture.py – record the raw telnet stream of an ito / leva! module with timest
 - Writes ./captures/<date>_<time>_<name>.txt, one line per received line:
       <unix time> <line>
   plus event lines starting with '#' (connect, disconnect, commands you sent).
-- Sends a bare newline every 5 s so the module keeps the connection open.
+- Sends a bare newline every 5 s so the module keeps the connection open
+  (--no-keepalive turns this off, to observe a connection that sends nothing).
 - Reconnects automatically (every 2 s) when the machine is switched off or
   unreachable, and logs when it comes back. On reconnect the start command for
   the chosen mode is sent again.
 - Anything you type in the terminal and confirm with Enter is sent to the module
   as-is (e.g. MCa, MCE, MCu) and logged as '# >> MCa'. Lines starting with '#'
-  are only written to the log as notes (e.g. '# flush starts'). Type 'q' to stop.
+  are only written to the log as notes (e.g. '# flush starts'). Prefix a command
+  with !cr, !lf or !crlf to send it with that line ending once (e.g. '!lf MCR').
+  Type 'q' to stop.
+
+Line endings for commands: --eol crlf (default), lf or cr.
 
 Modes: mcr = MCr (sensor frames), display = MC@ (display frames),
        both = MCr followed by MC@, none = send nothing (observe default output).
@@ -35,8 +40,10 @@ START = {"mcr": ["MCr"], "display": ["MC@"], "both": ["MCr", "MC@"], "none": []}
 
 
 class Capture:
-    def __init__(self, host, path, mode):
+    def __init__(self, host, path, mode, eol="crlf", keepalive=True):
         self.host, self.mode = host, mode
+        self.eol = {"crlf": b"\r\n", "lf": b"\n", "cr": b"\r"}[eol]
+        self.use_keepalive = keepalive
         self.out = open(path, "w", encoding="utf-8", buffering=1)
         self.sock = None
         self.lock = threading.Lock()
@@ -50,16 +57,18 @@ class Capture:
         self.log(f"# {text}")
         print(f"{datetime.now():%H:%M:%S} {text}")
 
-    def send(self, cmd, quiet=False):
+    def send(self, cmd, quiet=False, eol=None):
+        eol = eol or self.eol
         with self.lock:
             if not self.sock:
                 if not quiet:
                     self.event(f"not connected, '{cmd}' not sent")
                 return
             try:
-                self.sock.sendall(cmd.encode("latin-1") + b"\r\n")
+                self.sock.sendall(cmd.encode("latin-1") + eol)
                 if not quiet:
-                    self.event(f">> {cmd}")
+                    tag = {b"\r\n": "", b"\n": " [lf]", b"\r": " [cr]"}[eol]
+                    self.event(f">> {cmd}{tag}")
             except OSError:
                 pass
 
@@ -80,11 +89,15 @@ class Capture:
                 break
             if cmd.startswith("#"):
                 self.event(f"note: {cmd[1:].strip()}")
+            elif cmd.split(" ", 1)[0] in ("!cr", "!lf", "!crlf") and " " in cmd:
+                flag, rest = cmd.split(" ", 1)
+                self.send(rest.strip(), eol={"!cr": b"\r", "!lf": b"\n", "!crlf": b"\r\n"}[flag])
             elif cmd:
                 self.send(cmd)
 
     def run(self, minutes):
-        threading.Thread(target=self.keepalive, daemon=True).start()
+        if self.use_keepalive:
+            threading.Thread(target=self.keepalive, daemon=True).start()
         threading.Thread(target=self.stdin_reader, daemon=True).start()
         end = time.time() + minutes * 60 if minutes else None
         was_offline_since = None
@@ -145,12 +158,15 @@ def main():
     ap.add_argument("host")
     ap.add_argument("name", help="short label, e.g. shot or heatup")
     ap.add_argument("--mode", choices=START, default="mcr")
+    ap.add_argument("--eol", choices=["crlf", "lf", "cr"], default="crlf", help="line ending for commands")
+    ap.add_argument("--no-keepalive", action="store_true", help="never send anything on its own")
     ap.add_argument("--minutes", type=float, default=0, help="stop after N minutes (0 = until 'q' or Ctrl+C)")
     a = ap.parse_args()
     os.makedirs("captures", exist_ok=True)
     path = os.path.join("captures", f"{datetime.now():%Y-%m-%d_%H%M%S}_{a.name}.txt")
     print(f"writing {path}  (command + Enter = send, '# text' = note, 'q' = stop)")
-    cap = Capture(a.host, path, a.mode)
+    cap = Capture(a.host, path, a.mode, a.eol, not a.no_keepalive)
+    cap.event(f"options: mode={a.mode} eol={a.eol} keepalive={not a.no_keepalive}")
     try:
         cap.run(a.minutes)
     except KeyboardInterrupt:
