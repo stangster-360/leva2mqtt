@@ -81,13 +81,13 @@ Machine switched off for at least an hour.
 4. After 2 more minutes: `MCu`, 10 s, `MCh`, 10 s, then `MCr` for 60 s (sensor data of the
    warm machine), `q`.
 
-### 2. Flow meter reference – `flow-ref` – ~3 min
+### 2. Flow meter reference – `flow-ref` – ~3 min – done
 
 1. `capture.py <ip> flow-ref --mode mcr`
 2. **Empty** portafilter, cup on the tared scale.
 3. `# empty start`, run ~10 s, stop, `# end, scale XX g`, wait 20 s, `q`.
 
-### 3. Two shots with a flush in between – `shots` – ~5 min
+### 3. Two shots with a flush in between – `shots` – ~5 min – done
 
 1. `capture.py <ip> shots --mode mcr`
 2. `# shot 1, dose 18.0 g, grind X`, pull a shot. 30 s, `# cup off`, `# flush`, flush.

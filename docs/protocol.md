@@ -165,6 +165,10 @@ measure. **dev**
 | Tank empty | `*`, target 9 bar but pressure stays ~2–2.6 bar, flow meter almost zero |
 | Water through the steam wand | `*`, high flow meter volume (~6 ml/s), low pressure, almost no weight |
 | Cold start | 21.5 → 82 °C in 2.5 min, 89 °C after 3.6 min (boiler only, group still cold) |
+| Espresso shot, lever profile (18 g in; 42.3 g / 42.9 g out) | `*` for 21.1 s / 17.9 s. Pre-infusion at ~480 ml/min with measured pressure below 1.5 bar until ~68–69 ml are pumped (both shots), first drop 9.3 s / 8.8 s after pump start. Pressure then builds to 6.9–7.6 bar and follows the falling target; flow meter rate falls to 200–290 ml/min, weight rate 3.0–4.3 g/s. Boiler drops 4.5 K, heater output 90 %+. The pump stopped at 39.1 g / 39.3 g in the cup, another 3–5 g dripped in afterwards. |
+| Flush / free flow | `*` for 4.5 s and 8 s, rate constant ~480 ml/min, measured pressure stays below 1.5 bar, weight rate 10–15 g/s. The target field shows `09.00` like in a shot. Weight (45.6 g, 91.5 g) was higher than the flow meter volume (39 ml, 66 ml) – why is **unverified**. |
+| Target pressure curve | `09.00` from pump start, falls after ~5.5 s by ~0.23 bar/s; 7.64 bar at 10.8 s in both shots. Depends on time since pump start, not on the puck. |
+| Idle pressure after a shot | 5.9 bar 10 s after the pump stopped, 4.2 bar after about a minute, 0.5–0.8 bar after a flush. Not usable as a "pump is running" signal. |
 
 ## Setup dump (`MCu`)
 
