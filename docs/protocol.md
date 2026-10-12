@@ -33,7 +33,16 @@ Placeholder: `<ito-ip>` for the module's address.
   only. **seen**
 - Waking the machine with `MCa`: in a Leva Companion log the output switched back to
   display frames. In our own capture `MCr` kept streaming through the wake-up, no new
-  `MCr` was needed. **seen** (waking with the button: **unverified**)
+  `MCr` was needed. **seen** The same holds when the machine is woken with its button:
+  the `?1???…` standby frames turned into `PID` frames without a gap and without any
+  command from the client, and M. heard no beep. **seen** (one capture)
+- When the module loses power it does **not** close the TCP connection: a client that
+  sent nothing (no keepalive) saw the frames stop and then nothing at all – no FIN, no
+  reset, no error – for 60 s after the power came back. A client has to notice the missing
+  frames itself (watchdog, e.g. no frame for 2–3 s while `MCr` is streaming) and
+  reconnect. Whether writing to the dead connection triggers a reset once the module is
+  up again, how long the module needs to boot, and which report mode it starts with after
+  a power cycle: **unverified**, see scenario 9. **seen** (one capture)
 - From standby, connecting, the keepalive newline, `MC@` and `MCr` do **not** wake the
   machine (display stays `STANDBY`). **seen** (two captures)
 - `MCcREPORT SP1` **does** wake it from standby: the display changed from `STANDBY` to

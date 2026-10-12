@@ -102,7 +102,7 @@ Machine switched off for at least an hour.
 3. Note after each command: *beep? display?* Expected from the captures so far: `MCr`
    keeps streaming through every state change.
 
-### 5. Wake with the machine's button, passive – `wake-button` – ~3 min
+### 5. Wake with the machine's button, passive – `wake-button` – ~3 min – done
 
 1. Standby as in 0 (steps 1–2).
 2. `capture.py <ip> wake-button --mode none --no-keepalive`
@@ -131,9 +131,12 @@ Without `--no-keepalive` the tool appends a bare `\n` every 5 s, which would com
 
 ### 9. Power cycle at the plug – `power-cycle` – ~4 min
 
-1. `capture.py <ip> power-cycle --mode none --no-keepalive`
+1. `capture.py <ip> power-cycle --mode mcr` (**with** keepalive). A first run with
+   `--no-keepalive` showed that the module does not close the connection when it loses
+   power; without outgoing data the tool never noticed and never reconnected.
 2. 20 s, `# power off`, switch off. 60 s, `# power on`, switch on.
-3. After "connected again", listen 60 s, `q`.
+3. After "connected again", listen 60 s, `q`. Note the time from `# power on` to
+   "connected again" and which kind of frames arrive first (`<…>` or `{…}`).
 
 ### 10. Optional, last: second client – `client-a` / `client-b`
 
