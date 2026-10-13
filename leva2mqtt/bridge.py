@@ -108,6 +108,8 @@ class Bridge:
             out.append("visualizer")
         if self.cfg.telegram_enabled:
             out.append("telegram")
+        if self.cfg.shots.grinders:
+            out.append("grinders " + ", ".join(self.cfg.shots.grinders))
         if self.cfg.shots.directory:
             out.append(f"shot files ({self.cfg.shots.directory}, "
                        f"{'keep' if self.cfg.shots.keep else 'delete'} after upload)")
@@ -361,7 +363,8 @@ class Bridge:
         old = self._bags
         self._bags = {b["label"]: b["id"] for b in bags}
         if old is None or set(old) != set(self._bags):
-            log.info("%d active coffee bag(s) on Visualizer", len(self._bags))
+            log.info("%d active coffee bag(s) on Visualizer: %s", len(self._bags),
+                     "; ".join(self._bags) or "none")
         selected = self.settings.get("coffee_bag")
         if selected and selected not in self._bags:
             log.warning("coffee bag %r is not active any more, selection cleared", selected)
