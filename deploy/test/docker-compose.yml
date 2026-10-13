@@ -1,0 +1,57 @@
+# Test stack: bridge + own Mosquitto, optionally fed by a replayed capture.
+#
+#   docker compose --profile fake up -d --build   # fake module from captures/$CAPTURE
+#   docker compose up -d --build                  # real machine, set MACHINE_HOST/PORT in .env
+#
+# Settings come from .env (copy .env.example). The bridge uses its own device
+# name and topic prefix so it never collides with a production instance.
+
+name: leva2mqtt-test
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  fake-ito:
+    profiles: ["fake"]
+    image: python:3.12-slim
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ../../tools:/app/tools:ro
+      - ./captures:/captures:ro
+    command: >-
+      python -u tools/fake_ito.py /captures/${CAPTURE:-replay.txt}
+      --port 2300 --speed ${SPEED:-1}
+      --from ${FROM:-0} --to ${TO:-1000000}
+
+  leva2mqtt:
+    build: ../..
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    volumes:
+      - data:/data
+    environment:
+      TZ: Europe/Berlin
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+      MACHINE_HOST: ${MACHINE_HOST:-fake-ito}
+      MACHINE_PORT: ${MACHINE_PORT:-2300}
+      MACHINE_NAME: ${MACHINE_NAME:-Silvia Test}
+      MQTT_HOST: ${MQTT_HOST:-mosquitto}
+      MQTT_PORT: ${MQTT_PORT:-1883}
+      MQTT_USERNAME: ${MQTT_USERNAME:-}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      MQTT_TOPIC_PREFIX: ${MQTT_TOPIC_PREFIX:-leva2mqtt-test}
+      VISUALIZER_USERNAME: ${VISUALIZER_USERNAME:-}
+      VISUALIZER_PASSWORD: ${VISUALIZER_PASSWORD:-}
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+
+volumes:
+  data:

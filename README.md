@@ -60,6 +60,7 @@ pressure sensor, a flow meter.
 - [docs/protocol.md](docs/protocol.md) – commands, display layouts and connection
   behaviour, as observed on real hardware
 - [docs/detection-rules.md](docs/detection-rules.md) – how states, shots, steam and hot water are recognised
+- [deploy/test/README.md](deploy/test/README.md) – test stack (own broker, replayed capture) and a Proxmox LXC script
 
 ## Contributing
 
