@@ -143,7 +143,7 @@ cold-start capture, where M. navigated the menu (**seen**):
 | Digit | Meaning |
 |---|---|
 | 1st | display on (`1`) / off (`0`). Turns `0` exactly 180 s after the last interaction or power-on (setup `Auto-off 180s`); turns `1` again with input or with `READY` |
-| 2nd | input event in this frame: `0` none, `1` encoder turned one way, `2` the other way, `3` click |
+| 2nd | input event in this frame: `0` none, `1` encoder turned one way, `2` the other way, `3` click, `9` brew switch (pump start / stop) |
 | 3rd | screen: `2` main / shot screen, `1` menu |
 
 So `002` is simply "main screen, display off", not a machine state – the earlier
@@ -178,14 +178,26 @@ bar-graph and arrow glyphs. Strip them before parsing.
 
 ### Shot screen
 
+Captured during a 7 s flush (`shotscreen`, 13.10., control characters shown as `\x04`):
+
 ```
-<102 12s 24.7g 1: 88.8ß 90.0ß R=3.4 7.3 7.3b 24.7g>
-     time weight   actual setpoint flow pressure target weight
+<102 0s  0.0g       1: 89.8ß \x04 90.0ß  7%    0s R=0.0 1.5  9.0b  0.0g>
+<102 0s 10.9g       1: 89.8ß \x04 90.0ß  7%    0s R=7.5 0.5   0ß  10.9g>
+    |-- line 1 ----||-- line 2 ----||-- line 3 ----||-- line 4 ----|
 ```
 
-- `time` – shot timer in seconds; `R=` – flow by weight in g/s; then measured
-  pressure and target pressure of the profile in bar. **seen**
-- With a scale connected, the flow meter value is not shown here. **seen**
+- Line 1: shot time and weight; line 2 as on the main screen; line 3 heater output, a
+  second time field and `R=` flow by weight (g/s); line 4 measured pressure (no unit),
+  a target (`9.0b` in the first frame, then `0ß`) and the weight. **seen**
+- Both time fields stayed `0s` during this flush; whether they count during a real shot
+  is **unverified**. The main screen's "last shot time" changed from `17s` (the shot
+  before) to `0s` after the flush. The shot before ran 19.9 s by the `*` flag, so the
+  firmware's shot time is measured differently (from the pressure rise or first drop?
+  **unverified**).
+- The screen switches within 0.3 s after the pump starts and back 0.3 s after it stops.
+  The frames at start and stop carry the input digit `9` (`192`): brew switch. **seen**
+- An older, whitespace-collapsed note of a shot screen: `<102 12s 24.7g 1: 88.8ß 90.0ß
+  R=3.4 7.3 7.3b 24.7g>` (time 12 s, flow 3.4 g/s, pressure 7.3, target 7.3 b).
 
 ## Rich frames (`MCr`)
 
@@ -251,6 +263,8 @@ measure. **dev**
 | Flush / free flow | `*` for 4.5 s and 8 s, rate constant ~480 ml/min, measured pressure stays below 1.5 bar, weight rate 10–15 g/s. The target field shows `09.00` like in a shot. A cup stood on the scale (M.), and these flushes did not stop at the target weight. Weight (45.6 g, 91.5 g) was higher than the flow meter volume (39 ml, 66 ml; 8 s at 480 ml/min would be 64 ml) – why is **unverified**. |
 | Hot water | `*` stays `-`. The flow meter keeps counting from its last value (114 → 221 ml, 239 → 463 pulses; the counter is only reset when the next `*` starts). Sequence: pump against the closed valve for ~3 s (pressure up to 10.3 bar, rate ~240 ml/min), valve opens: pressure 0.2–0.4 bar, rate ~500 ml/min for ~10 s, valve closes: pressure back to ~9.9 bar for ~2.5 s, pump stops. About 16 s and 107 ml in total; boiler 90.75 → 83.7 °C, heater 90 %+ for recovery. One capture. |
 | Steam | Machine steam switch flipped at ~59 s (M.; the "steam on" note was typed shortly before). From then the boiler rose to 118.45 °C although the setpoint field stayed `090.00`, heater output was `00` and the PID P term strongly negative (−120 … −262): the heating happens outside the PID, through the steam switch of the machine, which bypasses the PID (confirmed by M.; the frame data fit it). The brew pressure sensor follows the boiler temperature (5.0 bar at 84 °C, 6.2 bar at 110 °C). Steam valve opened at ~175 s: temperature fell 118 → 106 °C and pressure fell to ~0.9 bar while steam was drawn, then valve closed; the switch stayed on, temperature rose again. Positions 73–77 stepped `013.3` → `036.7` → `019.5` → `000.0` during the steam phase (not decoded). One capture. |
+| Espresso shots 13.10. (18.0 g in; 42.8 g / 42.0 g on the scale) | `*` 16.1 s / 19.9 s. Pressure starts rising ~2.5 s after pump start, first weight on the scale at +5.5 s (0.3 / 0.6 g), M. saw the first drop ~0.3 s earlier (note typed at +5.2 / +5.1 s): the scale lags the cup by well under a second. ~43 ml pumped at the first drop (68 ml in the 12.10. shots with a longer pre-infusion). Peak 8.0 / 8.8 bar. Yield from the frame 42.8 / 42.1 g. |
+| Boiler after a shot | Shot ends at 89 °C, minimum 84.95 °C ~30 s later (heater 50–66 %), back above 88.5 °C ~55 s after the end, then **overshoot to 91.65 °C** with heater 0 % for ~1.5 min, undershoot 89.4 °C, inside ±0.5 K again ~4.5 min after the shot. Per-minute heater averages after the shot: 46.1, 1.5, 0.2, 6.9, 7.9 – the firmware's ready condition is not met again within 5 min. |
 | Target pressure curve | `09.00` from pump start, falls after ~5.5 s by ~0.23 bar/s; 7.64 bar at 10.8 s in both shots. Depends on time since pump start, not on the puck. |
 | Idle pressure after a shot | 5.9 bar 10 s after the pump stopped, 4.2 bar after about a minute, 0.5–0.8 bar after a flush. Not usable as a "pump is running" signal. |
 

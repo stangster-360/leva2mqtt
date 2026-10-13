@@ -90,3 +90,12 @@ def test_ready_section_explains_the_decision():
     out = _screen(m, now=240.0)
     assert "READY since" in out and "0.6 pp < 1.0" in out
     assert "READY" in monitor.compact_line(m, 240.0)
+
+
+def test_display_shot_screen_from_capture():
+    # captured 2026-10-13 (flush): pressure is the first number of line 4, `9.0b` is the target
+    from leva2mqtt.display import parse_display
+    d = parse_display("<102 0s  0.0g       1: 89.8\xdf \x04 90.0\xdf  7%    0s R=0.0 1.5  9.0b  0.0g>")
+    assert d.shot and d.pressure == 1.5 and d.weight == 0.0 and d.temperature == 89.8
+    d = parse_display("<192 0s 51.8g       1: 89.6\xdf \x04 90.0\xdf  8%    0s R=8.1 0.4   0\xdf  51.8g>")
+    assert d.shot and d.input_event and d.pressure == 0.4 and d.weight == 51.8 and d.heater == 8

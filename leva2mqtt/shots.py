@@ -82,10 +82,10 @@ class ShotRecorder:
     """
 
     def __init__(self, tail: float = 5.0, shot_pressure: float = 3.0,
-                 first_drop_weight: float = 0.5, max_samples: int = 4 * 600):
+                 first_drop_weight: float = 0.2, max_samples: int = 4 * 600):
         self.tail = tail
         self.shot_pressure = shot_pressure            # seen (3 runs)
-        self.first_drop_weight = first_drop_weight    # threshold unverified
+        self.first_drop_weight = first_drop_weight    # first scale reading above it (13.10.: 0.3 / 0.6 g)
         self.max_samples = max_samples
         self.run: Optional[Run] = None
 

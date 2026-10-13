@@ -135,8 +135,9 @@ The module has no ready flag in `MCr`, and the firmware's `READY` is shown for o
 - Ready is kept during a shot or hot water and for 120 s afterwards (recovery time,
   decided by M. on 13.10.; `bridge.ready_grace`). It is lost when the boiler is still
   more than 1.5 K below the setpoint after that, and in eco, standby and steam mode.
-  Whether 120 s is enough for the boiler to recover after a shot (it drops ~4.5 K):
-  **unverified**.
+  120 s is enough: after the 13.10. shots the boiler was back above setpoint − 1.5 K
+  ~55 s after the end (it then overshoots by ~1.6 K and needs ~4.5 min to settle inside
+  ±0.5 K, so "boiler at temperature" goes off and on meanwhile). **seen** (2 shots)
 - After a bridge start or a lost connection the bridge needs three updates (about
   2–3 min) before it can report ready, also on a machine that is long warm.
 
@@ -191,8 +192,9 @@ Every `*` period is a run, closed 5 s after `*` ends so the drip is part of the 
 | tank_empty | flush ≥ 5 s with 9 bar target, mean flow < 100 ml/min | **unverified** |
 
 Shot values: duration (from `*`), yield (max. scale weight incl. tail), volume (flow
-meter, reads ~6 % low), peak pressure, first drop (weight > 0.5 g, threshold
-**unverified**), mean flow by weight after the first drop, boiler temperature at start
+meter, reads ~6 % low), peak pressure, first drop (first scale reading above
+0.2 g; in the 13.10. shots the first readings were 0.3 / 0.6 g, about 0.3 s after M. saw
+the drop, **seen**), mean flow by weight after the first drop, boiler temperature at start
 and minimum, profile name (position in the frame **unverified**), plus dose, ratio,
 bean and grinder setting from the settings entities.
 
@@ -270,7 +272,7 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
 ## Not done yet
 
 - A capture with a real alert (scenario 7, backflush) to confirm the alert position
-  and blinking, and a capture of the shot screen in display mode.
+  and blinking. (Shot screen in display mode: captured 13.10., parser adjusted.)
 - Multi-arch images (amd64 / arm64 / armv7) and the Home Assistant add-on.
 - Backflush detection (no capture yet).
 

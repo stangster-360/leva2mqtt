@@ -5,8 +5,8 @@ A display frame is `<CCC` + the 4 × 16 characters of the LCD + `>`:
     <102GEN.LEVER       1: 86.6ß \x04 90.0ß\x03             9% 3.3b-  0s   0ml>
         |-- line 1 ----||-- line 2 ----||-- line 3 ----||-- line 4 ----|
 
-CCC: 1st digit display on/off, 2nd input event (0 none, 1/2 encoder turned, 3 click),
-3rd screen (2 main / shot screen, 1 menu). Control characters 0x01-0x05 are bar-graph
+CCC: 1st digit display on/off, 2nd input event (0 none, 1/2 encoder turned, 3 click,
+9 brew switch / pump start and stop), 3rd screen (2 main / shot screen, 1 menu). Control characters 0x01-0x05 are bar-graph
 and arrow glyphs, `ß` (0xDF) is the degree sign.
 
 Main screen, as seen: line 1 profile, line 2 `1: <temp>ß <setpoint>ß` (`ECO` instead of
@@ -15,9 +15,16 @@ line 4 pressure, last shot time and weight (g) or volume (ml). Standby shows onl
 `STANDBY`. Alerts (`BACKFL`, `DSCALE`, `FILTER`, `REFILL`, `PROTECT`, `VALVE`,
 `ERR:…`) appear between setpoint and heater output per the manual; no alert has been
 captured yet, so where exactly they sit is unverified - they are searched in the whole
-main-screen text. The shot screen layout is known only from one older, whitespace-
-collapsed note (`<102 12s 24.7g 1: 88.8ß …`): it is recognised by a time in seconds at
-the start of line 1 (unverified).
+main-screen text.
+
+Shot screen, as seen (capture 2026-10-13 `shotscreen`, a flush):
+
+    <102 0s 10.9g       1: 89.8ß  90.0ß  7%    0s R=7.5 0.5   0ß  10.9g>
+
+line 1 shot time and weight, line 2 as on the main screen, line 3 heater output, a
+second time and `R=` flow by weight (g/s), line 4 measured pressure (no unit), a target
+(`9.0b` at the start, later `0ß`) and the weight. It is recognised by a time in seconds
+at the start of line 1.
 """
 from __future__ import annotations
 
@@ -86,7 +93,7 @@ def parse_display(line: str) -> Optional[Display]:
         temperature=temps[0] if temps else None,
         setpoint=temps[1] if len(temps) > 1 else None,
         heater=int(h) if (h := _f(r"(\d{1,3})%", l3)) is not None else None,
-        pressure=_f(_NUM + r"b", l4),
+        pressure=_f(r"^\s*" + _NUM, l4) if shot else _f(_NUM + r"b", l4),
         weight=weight,
         volume=int(volume) if volume is not None else None,
         alerts=tuple(dict.fromkeys(_ALERT_RE.findall(clean))),
