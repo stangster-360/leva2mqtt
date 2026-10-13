@@ -17,9 +17,13 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-from leva2mqtt.frame import parse  # noqa: E402
-from leva2mqtt.machine import Tracker, WakeReporter  # noqa: E402
-from leva2mqtt.shots import ShotRecorder  # noqa: E402
+try:
+    from leva2mqtt.frame import parse  # noqa: E402
+    from leva2mqtt.machine import Tracker, WakeReporter  # noqa: E402
+    from leva2mqtt.shots import ShotRecorder  # noqa: E402
+except ModuleNotFoundError as e:   # tools/ used without the package next to it
+    sys.exit(f"{e}: run this from a checkout that has leva2mqtt/ next to tools/ "
+             "(sparse checkout: git sparse-checkout set tools leva2mqtt)")
 
 WATCHDOG_S = 3.0
 

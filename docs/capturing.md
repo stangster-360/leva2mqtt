@@ -37,7 +37,9 @@ Close every other client (e.g. other apps talking to the module) first.
 
 ### Live view
 
-[`tools/monitor.py`](../tools/monitor.py) connects the same way but writes no file. It
+[`tools/monitor.py`](../tools/monitor.py) connects the same way but writes no file. Unlike
+`capture.py` it needs the `leva2mqtt/` package next to `tools/` (a full checkout, or
+`git sparse-checkout set tools leva2mqtt`); the same holds for `replay.py`. It
 decodes the stream with the bridge's parser and shows every known field once per second,
 with the notes from [protocol.md](protocol.md) (*unverified* etc.). Fields the frame
 does not deliver are left out.

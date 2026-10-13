@@ -50,9 +50,13 @@ from typing import List, Optional, Tuple
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-from leva2mqtt.frame import Frame, parse  # noqa: E402
-from leva2mqtt.display import parse_display  # noqa: E402
-from leva2mqtt.machine import MODE_AWAKE, Tracker  # noqa: E402
+try:
+    from leva2mqtt.frame import Frame, parse  # noqa: E402
+    from leva2mqtt.display import parse_display  # noqa: E402
+    from leva2mqtt.machine import MODE_AWAKE, Tracker  # noqa: E402
+except ModuleNotFoundError as e:   # tools/ used without the package next to it
+    sys.exit(f"{e}: run this from a checkout that has leva2mqtt/ next to tools/ "
+             "(sparse checkout: git sparse-checkout set tools leva2mqtt)")
 
 PORT = 23
 CONNECT_TIMEOUT_S = 3.0
