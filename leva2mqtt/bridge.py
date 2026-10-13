@@ -25,7 +25,7 @@ class Bridge:
     def __init__(self, cfg: Config):
         self.cfg = cfg
         b = cfg.bridge
-        self.tracker = Tracker(Settings(ready_band=b.ready_band, ready_hold=b.ready_hold,
+        self.tracker = Tracker(Settings(at_temp_band=b.ready_band, ready_spread=b.ready_spread,
                                         steam_on=b.steam_threshold,
                                         steam_off=b.steam_threshold - 1.0))
         self.reporter = WakeReporter(b.report_min_offline)
@@ -155,6 +155,7 @@ class Bridge:
         values = {
             "state": tr.state, "mode": f.mode,
             "pump": bool(f.pump), "heating": tr.heating, "ready": tr.ready,
+            "at_temperature": tr.at_temperature,
             "steam": tr.steam, "hot_water": tr.hot_water,
         }
         for key in ("temperature", "setpoint", "heater", "heater_avg", "pressure",

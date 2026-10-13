@@ -9,7 +9,7 @@ def _put(buf, pos, text):
 
 def frame(pump="-", mode="PID", temp=90.0, setpoint=90.0, heater=10, volume=0, pulses=0,
           rate=0, target=None, pressure=0.5, weight=None, flow_weight=None,
-          profile="GEN.LEVER", standby=False):
+          profile="GEN.LEVER", standby=False, heater_avg=10.0):
     buf = ["?"] * LEN
     buf[0], buf[1], buf[-1] = "{", " ", "}"
     _put(buf, LEN - 5, "~ 00")
@@ -23,7 +23,8 @@ def frame(pump="-", mode="PID", temp=90.0, setpoint=90.0, heater=10, volume=0, p
     _put(buf, 7, f"{temp:06.2f}")
     _put(buf, 13, f"{setpoint:05.1f}")
     _put(buf, 18, f"{heater:03d}")
-    _put(buf, 73, "010.0")
+    if heater_avg is not None:
+        _put(buf, 73, f"{heater_avg:05.1f}")
     _put(buf, 152, f"{volume:03d}{pulses:05d}{rate:03d}001.0")
     if target is not None:
         _put(buf, 192, f"{target:05.2f}")

@@ -64,7 +64,7 @@ Every key `<section>.<key>` can be set as environment variable `<SECTION>_<KEY>`
 | `shots.dose` | 18.0 | start value of the dose entity, g |
 | `shots.tail` | 5.0 | s after the pump stops that still count for the yield |
 | `bridge.report_min_offline` | 10 | see "Setpoint beep" |
-| `bridge.ready_band`, `ready_hold` | 0.25 K, 240 s | see "Ready" |
+| `bridge.ready_band`, `ready_spread` | 0.5 K, 1.0 %-points | see "Ready" |
 | `bridge.steam_threshold` | 100 °C | |
 | `log_level` | INFO | |
 
@@ -110,9 +110,30 @@ soon as frames arrive, is **unverified**.
 | brewing | `*` flag (pump or brew program, not only shots) | **seen** |
 | steam | boiler ≥ 100 °C while the setpoint is below; ends below 99 °C | threshold **unverified** |
 | hot_water | flow meter counter rises ≥ 5 ml without `*`, ends after 3 s without change | **seen** (one capture) |
-| ready | boiler within ±0.25 K of the setpoint for 240 s, lost beyond ±1 K or on pump / steam / hot water | **unverified** – the module has no ready flag; tuned to one ready beep |
+| ready | see "Ready" below | **unverified** (2 hits) |
 | heating | more than 1.5 K below the setpoint | **seen** |
 | idle | awake, none of the above | |
+
+## Ready
+
+The module has no ready flag in `MCr`, and the firmware's `READY` is shown for only
+10 s in display frames. The bridge reproduces the firmware's decision instead
+(docs/detection-rules.md, section 3):
+
+- **Boiler at temperature** (own binary sensor): within ±0.5 K of the setpoint.
+- **Ready**: at an update of the per-minute heater average (pos 73–77, once a minute),
+  the boiler is at temperature **and** the last three averages lie within less than
+  1.0 percentage point. An update that repeats the old value cannot be seen in the
+  frame; an unchanged value is counted again after 65 s (**unverified**).
+- Ready is kept during a shot and lost when the boiler is more than 1.5 K below the
+  setpoint outside a shot (in practice after most shots, until the averages have
+  settled again), and in eco, standby and steam mode.
+- After a bridge start or a lost connection the bridge needs three updates (about
+  2–3 min) before it can report ready, also on a machine that is long warm.
+
+Replay of the captures: cold start `heatup-cold2` ready at 494.8 s, M.'s note "beep
+10 s ago" at 510 s; warm power cycle `hb-resend` ready at 391.8 s, beep noted at 401 s.
+Two hits; whether the 1-point spread is absolute or relative is **unverified**.
 
 ## Pump runs and shots
 
@@ -192,21 +213,15 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
   flow meter volume, control mode, profile, PID terms (disabled by default),
   last shot (timestamp, attributes = shot record), last shot yield, last shot duration,
   shots waiting for delivery (diagnostic)
-- Binary sensors: pump, heating up, ready, steam mode, hot water
+- Binary sensors: pump, heating up, boiler at temperature, ready, steam mode, hot water
 - Buttons: wake (`MCa`), eco (`MCe`), standby (`MCE`), beep setpoint
 - Settings: dose (number), bean, grinder setting (text), Visualizer upload and
   Telegram message (switches, only when configured)
 
 ## Not done yet
 
-Differences to the current proposals in [detection-rules.md](detection-rules.md), to be
-aligned once the cold-start captures are evaluated:
+Differences to the current proposals in [detection-rules.md](detection-rules.md):
 
-- **Ready:** the code uses a single band (±0.25 K for 240 s). The cold-start capture
-  showed that the firmware's ready beep follows the per-minute heater average (pos
-  73–77): ready when the boiler is within ±0.5 K and the last three per-minute averages
-  lie within less than 1.0 percentage point, evaluated at each update of the field (two
-  hits, see detection-rules.md). To be ported.
 - **Other client:** the code re-sends `MCr` after 5 s without `MCr` frames. With the
   Leva Companion app connected this would break the app's display; detection-rules.md
   proposes to expose "other client active" and keep reading the display frames instead.
@@ -214,8 +229,6 @@ aligned once the cold-start captures are evaluated:
 - Maintenance alerts (`BACKFL`, `DSCALE`, …) only exist in display frames. Decided
   (13.10.): while idle (no `*`, no steam), switch to `MC@` for about 1 s every 5 min,
   then back to `MCr`; on a shot screen switch back at once.
-- Ready: decided (13.10.) that the bridge exposes its own ready entity; port the rule
-  from detection-rules.md (per-minute heater average).
 - Multi-arch images (amd64 / arm64 / armv7) and the Home Assistant add-on.
 - Backflush detection (no capture yet).
 

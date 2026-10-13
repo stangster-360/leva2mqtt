@@ -59,8 +59,8 @@ class ShotsConfig:
 @dataclass
 class BridgeConfig:
     report_min_offline: float = 10.0
-    ready_band: float = 0.25
-    ready_hold: float = 240.0
+    ready_band: float = 0.5         # K around the setpoint for "at temperature" / ready
+    ready_spread: float = 1.0       # %-points spread of the last three per-minute heater averages
     steam_threshold: float = 100.0
 
 

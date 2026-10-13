@@ -38,8 +38,8 @@ shots:
 
 bridge:                     # detection thresholds – all unverified, see docs/bridge.md
   report_min_offline: 10    # s offline before a reconnect counts as "machine reachable again"
-  ready_band: 0.25          # K around the setpoint
-  ready_hold: 240           # s inside the band until "ready"
+  ready_band: 0.5           # K around the setpoint ("at temperature", needed for ready)
+  ready_spread: 1.0         # %-points: last three per-minute heater averages must lie within this
   steam_threshold: 100      # °C boiler temperature for steam mode
 
 log_level: INFO

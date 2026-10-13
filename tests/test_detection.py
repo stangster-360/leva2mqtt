@@ -58,12 +58,65 @@ def test_states():
     assert tr.state == STEAM
 
 
-def test_ready_needs_stable_temperature():
+def feed_minutes(tracker, temps_and_avgs, t0=0.0):
+    """One minute of frames per (temperature, per-minute average) pair."""
+    t = t0
+    for temp, avg in temps_and_avgs:
+        for _ in range(240):
+            tracker.update(parse(frame(temp=temp, heater_avg=avg)), t)
+            t += 0.25
+    return t
+
+
+def test_ready_follows_heater_average():
+    # cold start 13.10.: 22.4 -> 16.0 -> 10.4 -> 10.7 -> 10.1, beep after the 10.1 update
     tr = Tracker()
-    t = feed(tr, [frame(temp=90.1)] * int(tr.s.ready_hold / 0.25 - 4))
-    assert tr.state != READY
-    feed(tr, [frame(temp=90.1)] * 8, t0=t)
-    assert tr.state == READY
+    feed_minutes(tr, [(89.9, 22.4), (90.5, 16.0), (90.3, 10.4), (90.05, 10.7)])
+    assert tr.at_temperature and not tr.ready
+    feed_minutes(tr, [(90.25, 10.1)])
+    assert tr.ready and tr.state == READY
+
+
+def test_ready_spread_must_be_below_one_point():
+    # warm power cycle 12.10.: 3.7 -> 4.7 -> 4.1 (spread 1.0, no beep) -> 4.7 (beep)
+    tr = Tracker()
+    feed_minutes(tr, [(89.95, 3.7), (90.15, 4.7), (89.9, 4.1)])
+    assert not tr.ready
+    feed_minutes(tr, [(90.05, 4.7)])
+    assert tr.ready
+
+
+def test_ready_needs_boiler_at_temperature():
+    tr = Tracker()
+    feed_minutes(tr, [(88.0, 10.0), (88.2, 10.2), (88.4, 10.1)])
+    assert not tr.ready and not tr.at_temperature
+
+
+def test_unchanged_average_counts_as_update():
+    tr = Tracker()
+    feed_minutes(tr, [(90.0, 5.0), (90.0, 5.0), (90.0, 5.0)])
+    assert tr.ready
+
+
+def test_ready_kept_during_shot_lost_after():
+    tr = Tracker()
+    t = feed_minutes(tr, [(90.0, 5.0), (90.1, 5.2), (90.0, 5.1)])
+    assert tr.ready
+    t = feed(tr, [frame(pump="*", temp=86.5, heater_avg=5.1)] * 40, t0=t)
+    assert tr.ready and tr.state == BREWING
+    feed(tr, [frame(temp=86.5, heater_avg=5.1)], t0=t)
+    assert not tr.ready and tr.state == HEATING
+
+
+def test_ready_reset_by_standby_and_steam():
+    tr = Tracker()
+    t = feed_minutes(tr, [(90.0, 5.0), (90.1, 5.2), (90.0, 5.1)])
+    t = feed(tr, [frame(standby=True)], t0=t)
+    assert not tr.ready
+    t = feed_minutes(tr, [(90.0, 5.0), (90.1, 5.2), (90.0, 5.1)], t0=t)
+    assert tr.ready
+    feed(tr, [frame(temp=105, heater_avg=0.0)], t0=t)
+    assert not tr.ready and tr.state == STEAM
 
 
 def test_hot_water_without_pump_flag():

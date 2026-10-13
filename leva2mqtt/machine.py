@@ -12,7 +12,7 @@ STANDBY = "standby"
 ECO = "eco"
 HEATING = "heating"
 IDLE = "idle"          # awake, near the setpoint, not (yet) ready
-READY = "ready"        # derived by the bridge, see ReadyDetector (unverified)
+READY = "ready"        # derived by the bridge like the firmware's ready beep (unverified)
 BREWING = "brewing"    # pump / brew program running ('*')
 HOT_WATER = "hot_water"
 STEAM = "steam"
@@ -35,9 +35,10 @@ class Settings:
     """Thresholds; the defaults rest on single captures and are unverified."""
 
     heating_margin: float = 1.5     # K below setpoint = heating (seen)
-    ready_band: float = 0.25        # K around setpoint (unverified, one ready beep)
-    ready_hold: float = 240.0       # s inside the band (unverified: one beep ~4 min after entering ±0.15 K)
-    ready_lost_band: float = 1.0    # K: ready is kept while within this band
+    at_temp_band: float = 0.5       # K around the setpoint = boiler at temperature
+    ready_spread: float = 1.0       # %-points: last three per-minute heater averages (2 hits)
+    ready_samples: int = 3
+    avg_period: float = 60.0        # s between updates of the per-minute average (seen)
     steam_on: float = 100.0         # °C boiler with setpoint < steam_on = steam mode (threshold unverified)
     steam_off: float = 99.0         # °C: steam mode left (unverified)
     hot_water_min_ml: int = 5       # flow meter increase without '*' (one capture)
@@ -55,7 +56,9 @@ class Tracker:
         self.ready = False
         self.steam = False
         self.hot_water = False
-        self._band_since: Optional[float] = None
+        self.at_temperature = False
+        self._avgs: list[float] = []          # last per-minute heater averages, oldest first
+        self._avg_t: Optional[float] = None   # time of the last update of the field
         self._pump_end: Optional[float] = None
         self._pump_on = False
         self._vol_base: Optional[int] = None
@@ -65,8 +68,8 @@ class Tracker:
     def link_down(self) -> None:
         self.mode = None
         self.state = OFFLINE
-        self.ready = self.steam = self.hot_water = False
-        self._band_since = None
+        self.ready = self.steam = self.hot_water = self.at_temperature = False
+        self._reset_ready()
         self._vol_base = self._vol_last = None
         self._pump_on = False
 
@@ -77,8 +80,8 @@ class Tracker:
         change = (old_mode, self.mode) if old_mode != self.mode else None
 
         if self.mode != MODE_AWAKE:
-            self.ready = self.steam = self.hot_water = False
-            self._band_since = None
+            self.ready = self.steam = self.hot_water = self.at_temperature = False
+            self._reset_ready()
             self._vol_base = self._vol_last = None
             self._pump_on = False
             self.state = STANDBY if self.mode == MODE_STANDBY else ECO
@@ -149,25 +152,52 @@ class Tracker:
             self.hot_water = False
             self._vol_base = vol
 
-    def _update_ready(self, f: Frame, t: float) -> None:
-        temp, sp = f.temperature, f.setpoint
-        if temp is None or sp is None or self._pump_on or self.steam or self.hot_water:
-            self.ready = False
-            self._band_since = None
-            return
-        diff = abs(temp - sp)
-        if self.ready:
-            if diff > self.s.ready_lost_band:
-                self.ready = False
-                self._band_since = None
-            return
-        if diff <= self.s.ready_band:
-            if self._band_since is None:
-                self._band_since = t
-            elif t - self._band_since >= self.s.ready_hold:
-                self.ready = True
+    def _reset_ready(self) -> None:
+        self.ready = False
+        self._avgs = []
+        self._avg_t = None
+
+    def _avg_updated(self, f: Frame, t: float) -> bool:
+        """Track the per-minute heater average (pos 73-77). Returns True on an update.
+
+        The field changes once a minute (seen). An update that repeats the old value is
+        not visible in the frame, so an unchanged value is counted again once a full
+        period plus a margin has passed (unverified)."""
+        v = f.heater_avg
+        if v is None:
+            return False
+        if self._avg_t is None or not self._avgs or v != self._avgs[-1]:
+            self._avg_t = t
+        elif t - self._avg_t >= self.s.avg_period + 5:
+            self._avg_t += self.s.avg_period
         else:
-            self._band_since = None
+            return False
+        self._avgs = (self._avgs + [v])[-self.s.ready_samples:]
+        return True
+
+    def _update_ready(self, f: Frame, t: float) -> None:
+        """Ready like the firmware's ready beep (docs/detection-rules.md, section 3):
+        boiler within ±0.5 K of the setpoint and the last three per-minute heater
+        averages within less than 1 percentage point, evaluated at each update of
+        the average. Two hits, unverified."""
+        temp, sp = f.temperature, f.setpoint
+        updated = self._avg_updated(f, t)
+        if temp is None or sp is None:
+            self.at_temperature = False
+            return
+        self.at_temperature = abs(temp - sp) <= self.s.at_temp_band
+        if self.steam:
+            self._reset_ready()
+            return
+        if self.ready:
+            # lost when the boiler falls too far outside a shot (eco, standby and
+            # steam reset it elsewhere)
+            if not self._pump_on and temp < sp - self.s.heating_margin:
+                self.ready = False
+            return
+        if (updated and self.at_temperature and len(self._avgs) == self.s.ready_samples
+                and max(self._avgs) - min(self._avgs) < self.s.ready_spread):
+            self.ready = True
 
 
 class WakeReporter:

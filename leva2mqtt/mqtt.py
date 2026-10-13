@@ -54,6 +54,7 @@ SENSORS: dict[str, tuple] = {
 BINARY_SENSORS: dict[str, tuple] = {
     "pump": ("Pump", "running", "mdi:pump"),
     "heating": ("Heating up", "heat", None),
+    "at_temperature": ("Boiler at temperature", None, "mdi:thermometer-check"),
     "ready": ("Ready", None, "mdi:coffee-maker-check"),
     "steam": ("Steam mode", None, "mdi:kettle-steam"),
     "hot_water": ("Hot water", "running", "mdi:water-boiler"),
