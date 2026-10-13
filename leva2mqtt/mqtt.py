@@ -80,6 +80,7 @@ BUTTONS: dict[str, tuple[str, str]] = {
     "report": ("Beep setpoint", "mdi:volume-high"),
 }
 NO_BAG = "None"     # select option: shot not linked to a coffee bag
+NO_GRINDER = "None"
 
 
 class MqttOutput:
@@ -323,6 +324,14 @@ class MqttOutput:
                 "command_topic": f"{self.base}/command/refresh_coffee_bags",
                 "payload_press": "PRESS", **self._availability(machine=False)})
             self._announce_bags()
+        grinders = self.cfg.shots.grinders
+        if grinders:
+            self._config("select", "grinder", {
+                "name": "Grinder", "icon": "mdi:grain", "entity_category": "config",
+                "options": [NO_GRINDER, *grinders],
+                "state_topic": f"{s}/grinder", "command_topic": f"{s}/grinder/set",
+                "value_template": "{{ value if value else '%s' }}" % NO_GRINDER,
+                **self._availability(machine=False)})
         switches = []
         if self.cfg.visualizer_enabled:
             switches.append(("visualizer_upload", "Upload shots to Visualizer", "mdi:cloud-upload"))
@@ -361,6 +370,9 @@ def parse_setting(key: str, payload: str) -> Optional[Any]:
         return v if 0 < v <= 100 else None
     if key in ("bean", "grinder_setting"):
         return payload.strip()[:100]
+    if key == "grinder":
+        p = payload.strip()[:100]
+        return "" if p == NO_GRINDER else p
     if key == "coffee_bag":
         p = payload.strip()[:255]
         return "" if p == NO_BAG else p

@@ -64,6 +64,7 @@ Every key `<section>.<key>` can be set as environment variable `<SECTION>_<KEY>`
 | `shots.keep` | false | keep the shot file after a successful Visualizer upload |
 | `shots.dose` | 18.0 | start value of the dose entity, g |
 | `shots.tail` | 5.0 | s after the pump stops that still count for the yield |
+| `shots.grinders` | – | grinder names for the **Grinder** select; env: comma-separated (`SHOTS_GRINDERS=Niche Zero,DF64`); one name = preselected |
 | `bridge.report_min_offline` | 10 | see "Setpoint beep" |
 | `bridge.ready_band`, `ready_spread`, `ready_grace` | 0.5 K, 1.0 %-points, 120 s | see "Ready" |
 | `bridge.steam_threshold` | 100 °C | |
@@ -259,6 +260,14 @@ API (`GET /api/roasters`, `GET /api/coffee_bags`, `PATCH /api/shots/<id>` with
 `coffee_bag_id`) as read from Visualizer's public source on 13.10.2026; **unverified**
 against the live service until the first linked shot.
 
+## Grinders
+
+Visualizer keeps no grinder objects: it only collects the `grinder_model` values of
+past shots as dropdown suggestions, and the API does not offer them. So the grinders
+come from `shots.grinders`. The chosen one goes into each shot as `grinder_model`
+(Visualizer then adds it to its suggestions) and into the Telegram message. The grind
+setting stays a text entity.
+
 ## MQTT topics
 
 `<prefix>/<id>/…`:
@@ -290,8 +299,8 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
 - Binary sensors: pump, heating up, boiler at temperature, ready, steam mode, hot water,
   maintenance alert (problem), other client connected (diagnostic)
 - Buttons: wake (`MCa`), eco (`MCe`), standby (`MCE`), beep setpoint
-- Settings: dose (number), bean, grinder setting (text), coffee bag (select, only with
-  bags on Visualizer) and a button to reload them, Visualizer upload and Telegram
+- Settings: dose (number), bean, grinder setting (text), grinder (select, only with
+  `shots.grinders`), coffee bag (select, only with bags on Visualizer) and a button to reload them, Visualizer upload and Telegram
   message (switches, only when configured)
 
 ## Not done yet

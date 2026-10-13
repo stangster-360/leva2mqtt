@@ -55,6 +55,7 @@ class ShotsConfig:
     keep: bool = False              # keep a shot file after a successful Visualizer upload
     dose: float = 18.0              # default for the runtime dose entity, g
     tail: float = 5.0               # s after the pump stops that still count (drip)
+    grinders: list = field(default_factory=list)   # grinder names for the HA select; empty = none
 
 
 @dataclass
@@ -99,6 +100,11 @@ def _cast(value: Any, typ: type, name: str) -> Any:
     if value is None:
         return None
     try:
+        if typ is list:
+            items = value.split(",") if isinstance(value, str) else value
+            if not isinstance(items, (list, tuple)):
+                raise ValueError(value)
+            return [str(x).strip()[:100] for x in items if str(x).strip()]
         if typ is bool:
             if isinstance(value, bool):
                 return value

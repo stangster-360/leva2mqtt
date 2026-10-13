@@ -36,6 +36,7 @@ shots:
   keep: false               # keep a shot file after a successful Visualizer upload
   dose: 18.0                # start value of the "Dose" entity, g
   tail: 5.0                 # s after the pump stops that still count (drip into the cup)
+  grinders: []              # e.g. ["Niche Zero", "DF64"]: "Grinder" select in HA
 
 bridge:                     # detection thresholds – all unverified, see docs/bridge.md
   report_min_offline: 10    # s offline before a reconnect counts as "machine reachable again"

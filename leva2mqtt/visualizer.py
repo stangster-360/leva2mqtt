@@ -3,7 +3,8 @@
 Visualizer detects the format from the file content; a file that is none of its other
 formats is parsed as Decent JSON. Keys used here: timestamp, elapsed, pressure.pressure,
 pressure.goal, flow.flow, flow.by_weight, temperature.basket, temperature.goal,
-totals.weight, totals.water_dispensed, profile.title, app.data.settings.
+totals.weight, totals.water_dispensed, profile.title, app.data.settings (drink_weight,
+bean_weight, bean_brand, grinder_model, grinder_setting, espresso_notes).
 """
 from __future__ import annotations
 
@@ -36,7 +37,8 @@ def _series(values, scale=1.0, nd=2):
 
 
 def to_decent_json(run: Run, dose: Optional[float] = None, bean: Optional[str] = None,
-                   grinder_setting: Optional[str] = None) -> dict:
+                   grinder_setting: Optional[str] = None,
+                   grinder_model: Optional[str] = None) -> dict:
     s = run.samples
     data: dict = {
         "version": 2,
@@ -70,6 +72,8 @@ def to_decent_json(run: Run, dose: Optional[float] = None, bean: Optional[str] =
         settings["bean_brand"] = bean
     if grinder_setting:
         settings["grinder_setting"] = grinder_setting
+    if grinder_model:
+        settings["grinder_model"] = grinder_model
     data["app"] = {"data": {"settings": settings}}
     return data
 

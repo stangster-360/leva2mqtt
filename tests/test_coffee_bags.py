@@ -121,3 +121,33 @@ def test_telegram_names_the_bag():
            "grinder_setting": "12"}
     text = telegram.format_shot(rec, "Silvia", now=0)
     assert "Kenia – K, grinder 12" in text and "free text" not in text
+
+
+# --- grinders (from the configuration; Visualizer has no grinder API) ---------
+
+def test_grinders_from_env_and_select():
+    cfg = load("/nonexistent.yaml", {"MACHINE_HOST": "ito", "MQTT_HOST": "b",
+                                     "SHOTS_GRINDERS": "Niche Zero, DF64 ,"})
+    assert cfg.shots.grinders == ["Niche Zero", "DF64"]
+    out = _output()
+    out.cfg.shots.grinders = cfg.shots.grinders
+    out._announce_settings()
+    assert _configs(out)["grinder"]["options"] == ["None", "Niche Zero", "DF64"]
+    assert parse_setting("grinder", "None") == ""
+
+
+def test_bridge_grinder_setting_and_shot_json():
+    cfg = load("/nonexistent.yaml", {"MACHINE_HOST": "ito", "SHOTS_DIRECTORY": "x",
+                                     "SHOTS_GRINDERS": "DF64"})
+    b = Bridge(cfg)
+    assert b.settings["grinder"] == "DF64"          # single grinder is preselected
+    b._on_setting("grinder", "Unknown")
+    assert b.settings["grinder"] == "DF64"
+    from leva2mqtt.shots import Run
+    run = Run.__new__(Run)
+    run.samples, run.start, run.profile, run.yield_g = [], 0, None, None
+    data = visualizer.to_decent_json(run, grinder_setting="12", grinder_model="DF64")
+    assert data["app"]["data"]["settings"]["grinder_model"] == "DF64"
+    text = telegram.format_shot({"start": "2026-10-13T10:00:00+00:00", "grinder": "DF64",
+                                 "grinder_setting": "12"}, "Silvia", now=0)
+    assert "grinder DF64 12" in text

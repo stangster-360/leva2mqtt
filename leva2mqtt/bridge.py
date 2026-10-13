@@ -36,6 +36,9 @@ class Bridge:
         self.recorder = ShotRecorder(tail=cfg.shots.tail)
         self.settings: dict[str, Any] = {
             "dose": cfg.shots.dose, "bean": "", "grinder_setting": ""}
+        if cfg.shots.grinders:
+            # one grinder: preselected; several: chosen in Home Assistant
+            self.settings["grinder"] = cfg.shots.grinders[0] if len(cfg.shots.grinders) == 1 else ""
         if cfg.visualizer_enabled:
             self.settings["visualizer_upload"] = cfg.visualizer.upload
             self.settings["coffee_bag"] = ""
@@ -263,6 +266,8 @@ class Bridge:
         value = parse_setting(key, payload)
         if key == "coffee_bag" and value and self._bags is not None and value not in self._bags:
             value = None   # unknown bag; a restored value before the first load is kept
+        if key == "grinder" and value and value not in self.cfg.shots.grinders:
+            value = None   # e.g. removed from the configuration
         if value is None:
             log.warning("ignoring invalid value for %s: %r", key, payload)
         elif value != self.settings[key]:
@@ -281,7 +286,7 @@ class Bridge:
             if run.yield_g:
                 rec["ratio"] = round(run.yield_g / dose, 2)
         if run.kind == SHOT:
-            for key in ("bean", "grinder_setting"):
+            for key in ("bean", "grinder", "grinder_setting"):
                 if self.settings.get(key):
                     rec[key] = self.settings[key]
             label = self.settings.get("coffee_bag")
@@ -298,7 +303,7 @@ class Bridge:
             return
         self._last_shot = rec
         shot = visualizer.to_decent_json(run, rec.get("dose"), rec.get("bean"),
-                                         rec.get("grinder_setting"))
+                                         rec.get("grinder_setting"), rec.get("grinder"))
         targets = []
         if self.cfg.visualizer_enabled and self.settings.get("visualizer_upload"):
             targets.append("visualizer")
