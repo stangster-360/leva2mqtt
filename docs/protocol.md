@@ -214,8 +214,8 @@ bar-graph and arrow glyphs. Strip them before parsing.
 | 2 | `-` / `*` | `*` = pump / brew program active. **Not** the same as "shot": it also stays set while the pump runs dry or water is drawn through the steam wand. | **seen** |
 | 4–6 | `PID` | Control mode of PID 1 (`PID`, `ECO`, `OFF`, `CLD`, `ATN` per developer). `PID` when awake, `ECO` in eco (with the eco setpoint in the next field and no heater output), `???` in standby. `OFF`, `CLD`, `ATN` not seen | partly **seen** |
 | 7–12 | `090.15` | Boiler temperature °C | **seen** |
-| 13–18 | `090.00` | Setpoint °C (shows the eco setpoint `069.90` while in eco) | **seen** |
-| 19–20 | `17` | Heater output % (= P + I + D, clamped) | **seen** |
+| 13–17 | `090.0` | Setpoint °C, one decimal (shows the eco setpoint `069.9` while in eco) | **seen** |
+| 18–20 | `017` | Heater output %, three digits, `100` at full power (= P + I + D, clamped). Earlier notes read 13–18 / 19–20, which cut off the hundreds digit; corrected with the cold-start capture (609 frames at `100`) | **seen** |
 | 21–26 / 27–32 / 33–38 | `0001.1` `0007.1` `0008.5` | PID terms P, I, D | **seen** |
 | 45–52 | `-00.0625` | Rate of temperature change, used by the D term | **seen** |
 | 53–57 / 58–62 / 63–67 | `009.4` `058.0` `014.5` | PID constants Kc, Ti, Td | **seen** |
@@ -305,6 +305,24 @@ Cold start (first frame 35.6 °C, display stream, no interaction for 55 min):
   `XML=…`, a setup dump as after `MCu`, then display frames; from then on only display
   frames came, so the `MCr` data (and the per-minute heater average) ends at 20:00:21.
   `capture.py` now re-sends its own mode when the wrong kind of frame arrives. **seen**
+- **Cold start with `MCr`** (`heatup-cold2`, 13.10., 20.8 °C, no app, no interaction):
+  power-on ~10:28:25, heater `100` until 10:31:07, setpoint reached 10:32:20 (~4 min),
+  overshoot to 90.65 °C at 10:33:40, 90.05–90.25 °C from 10:35 on. Ready beep heard at
+  about 10:36:41 (~8.3 min). **seen**
+- **The ready beep follows the per-minute heater average (73–77)**. The field updates
+  once a minute; the beep came right after an update both times it was captured in
+  `MCr`:
+
+  | Capture | Last per-minute averages before the beep | Update → beep |
+  |---|---|---|
+  | `heatup-cold2` | 22.4, 16.0, **10.4, 10.7, 10.1** | 10:36:35 → ~10:36:41 |
+  | `hb-resend` (warm) | 3.1, 6.2, 3.7, **4.7, 4.1, 4.7** | 14:07:26 → ~14:07:27 |
+
+  The beep came at the first update at which the **last three averages lay within less
+  than 1 percentage point** (range 0.6 both times). One update earlier the range was 6.3
+  and 1.0 – no beep. This matches the manual ("steady state … last three minutes") and
+  explains why the beep is sporadic: a temperature that swings slowly keeps the heater
+  average moving. Rule **unverified** (two hits, threshold could also be relative).
 - The buzzer sequence for the ready beep is very short (10 × 30 ms on, 90 ms off in the
   setup dump) and the display switches off after 180 s (`Auto-off 180s`), so beep and
   `READY` are easy to miss. **seen** (setup dump)

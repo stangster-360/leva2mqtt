@@ -45,23 +45,21 @@ Transitions (the display text is not needed):
 ## 3. Heating and ready
 
 The bridge decides "ready" itself and does not depend on the firmware's `READY`
-(sporadic, shown for only 10 s, only in the display stream). Proposal, thresholds to be
-set from the cold-start capture (**unverified**):
+(shown for only 10 s, only in the display stream). The firmware's own decision could be
+reproduced from `MCr` in two captures, so the bridge uses the same condition:
 
-| State | Rule |
-|---|---|
-| heating | awake and temperature `f[7:13]` more than 1.5 K below the setpoint `f[13:19]` |
-| boiler at temperature | temperature within ±0.5 K of the setpoint for 2 min. The boiler is hot, the group may still be cold |
-| ready (heat-soaked) | boiler at temperature **and** the heater has settled: the per-minute average output `f[73:78]` changed by less than 1 percentage point over the last 3 updates. While group and housing still take up heat the average keeps falling (cold start: still falling after ~20 min) |
+| State | Rule | Status |
+|---|---|---|
+| heating | awake and temperature `f[7:13]` more than 1.5 K below the setpoint `f[13:18]` | **seen** |
+| boiler at temperature | temperature within ±0.5 K of the setpoint | **seen** |
+| ready | boiler at temperature **and** the last three values of the per-minute heater average `f[73:78]` (it updates once a minute) lie within less than 1.0 percentage point. Evaluate at each update of the field. Reproduced the firmware's ready beep to within seconds twice (cold start ~8.3 min, warm power cycle ~5.7 min) | **unverified** (2 hits) |
 
-- A warm machine (power cycle, wake from eco) reaches "ready" quickly because the
-  average output is already low; a cold start takes much longer. That matches what a
-  barista would call "warmed up".
 - Leaving "ready": temperature more than 1.5 K below the setpoint outside a shot, eco,
-  standby or steam mode.
+  standby or steam mode. Whether the firmware re-arms its beep after a shot: unknown.
 - The firmware `READY` replaces the setpoint field for 10 s in display frames (**seen**);
   the bridge may log it when it happens to be in display mode, nothing depends on it.
-- Heater output `f[19:21]` in %, per-minute average `f[73:78]`. **seen**
+- Heater output `f[18:21]` in % (`100` at full power), per-minute average `f[73:78]`.
+  **seen**
 
 ## 4. Brewing (needs `f[2] == "*"`)
 
