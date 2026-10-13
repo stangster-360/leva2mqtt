@@ -303,7 +303,8 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
 - Binary sensors: pump, heating up, boiler at temperature, ready, steam mode, hot water,
   maintenance alert (problem), other client connected (diagnostic)
 - Buttons: wake (`MCa`), eco (`MCe`), standby (`MCE`), beep setpoint
-- Settings: dose (number), bean, grinder setting (text), grinder (select, only with
+- Settings: dose (number), bean, grinder setting (text; shown as "None" when empty,
+  entering "None" clears them), grinder (select, only with
   `shots.grinders`), coffee bag (select, only with bags on Visualizer) and a button to reload them, Visualizer upload and Telegram
   message (switches, only when configured)
 

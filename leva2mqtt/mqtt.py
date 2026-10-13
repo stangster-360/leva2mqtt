@@ -81,6 +81,7 @@ BUTTONS: dict[str, tuple[str, str]] = {
 }
 NO_BAG = "None"     # select option: shot not linked to a coffee bag
 NO_GRINDER = "None"
+EMPTY_TEXT = "None"  # shown by the text entities bean / grinder setting when empty
 
 
 class MqttOutput:
@@ -317,6 +318,7 @@ class MqttOutput:
             self._config("text", key, {
                 "name": name, "icon": icon, "max": 100, "entity_category": "config",
                 "state_topic": f"{s}/{key}", "command_topic": f"{s}/{key}/set",
+                "value_template": "{{ value if value else '%s' }}" % EMPTY_TEXT,
                 **self._availability(machine=False)})
         if self.cfg.visualizer_enabled:
             self._config("button", "refresh_coffee_bags", {
@@ -369,7 +371,8 @@ def parse_setting(key: str, payload: str) -> Optional[Any]:
             return None
         return v if 0 < v <= 100 else None
     if key in ("bean", "grinder_setting"):
-        return payload.strip()[:100]
+        p = payload.strip()[:100]
+        return "" if p.lower() == EMPTY_TEXT.lower() else p
     if key == "grinder":
         p = payload.strip()[:100]
         return "" if p == NO_GRINDER else p

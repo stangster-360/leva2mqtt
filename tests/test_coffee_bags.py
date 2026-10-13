@@ -151,3 +151,11 @@ def test_bridge_grinder_setting_and_shot_json():
     text = telegram.format_shot({"start": "2026-10-13T10:00:00+00:00", "grinder": "DF64",
                                  "grinder_setting": "12"}, "Silvia", now=0)
     assert "grinder DF64 12" in text
+
+
+def test_empty_text_settings_show_none():
+    assert parse_setting("bean", "None") == "" and parse_setting("bean", "none ") == ""
+    assert parse_setting("grinder_setting", "2,5") == "2,5"
+    out = _output()
+    out._announce_settings()
+    assert "None" in _configs(out)["bean"]["value_template"]
