@@ -2,7 +2,7 @@
 """
 capture.py – record the raw telnet stream of an ito / leva! module with timestamps.
 
-    python3 capture.py <ito-ip> <name> [--mode mcr|display|none] [--no-resend] [--minutes N]
+    python3 capture.py <ito-ip> <name> [--mode mcr|display|none] [--no-resend] [--first-frame CMD] [--minutes N]
 
 - Writes ./captures/<date>_<time>_<name>.txt, one line per received line:
       <unix time> <line>
@@ -23,6 +23,9 @@ of the mode is sent again (logged). This also undoes another client switching th
 report mode (it is global for the module). A command sent in the first seconds after the
 machine is switched on is lost, and the module then sends only '$id: leva! (3.0)'
 heartbeats. --no-resend turns this off.
+
+--first-frame CMD: send CMD once as soon as the first frame of the chosen kind has
+arrived after each connect (e.g. "MCcREPORT SP1" to test it right after power-on).
 
 Line endings for commands: --eol crlf (default), lf or cr.
 
@@ -49,11 +52,13 @@ WANTED = {"mcr": "{", "display": "<"}  # first character of the frames each mode
 
 
 class Capture:
-    def __init__(self, host, path, mode, eol="crlf", keepalive=True, resend=False):
+    def __init__(self, host, path, mode, eol="crlf", keepalive=True, resend=False, first_frame=None):
         self.host, self.mode = host, mode
         self.eol = {"crlf": b"\r\n", "lf": b"\n", "cr": b"\r"}[eol]
         self.use_keepalive = keepalive
         self.use_resend = resend
+        self.first_frame_cmd = first_frame
+        self.first_frame_pending = False
         self.last_frame = time.time()
         self.out = open(path, "w", encoding="utf-8", buffering=1)
         self.sock = None
@@ -134,6 +139,7 @@ class Capture:
             with self.lock:
                 self.sock = s
             self.last_frame = time.time()
+            self.first_frame_pending = bool(self.first_frame_cmd)
             if was_offline_since is not None:
                 self.event(f"connected again after {time.time() - was_offline_since:.0f} s offline")
             else:
@@ -159,6 +165,12 @@ class Capture:
                             if text:
                                 if text[0] == WANTED.get(self.mode):
                                     self.last_frame = time.time()
+                                    if self.first_frame_pending:
+                                        self.first_frame_pending = False
+                                        self.log(text)
+                                        self.lines += 1
+                                        self.send(self.first_frame_cmd)
+                                        continue
                                 self.log(text)
                                 self.lines += 1
                     if time.time() - last_status > 30:
@@ -183,13 +195,14 @@ def main():
     ap.add_argument("--eol", choices=["crlf", "lf", "cr"], default="crlf", help="line ending for commands")
     ap.add_argument("--no-keepalive", action="store_true", help="never send anything on its own")
     ap.add_argument("--no-resend", action="store_true", help="do not re-send the start command while no frames arrive")
+    ap.add_argument("--first-frame", metavar="CMD", help="send CMD once after the first frame of each connection")
     ap.add_argument("--minutes", type=float, default=0, help="stop after N minutes (0 = until 'q' or Ctrl+C)")
     a = ap.parse_args()
     os.makedirs("captures", exist_ok=True)
     path = os.path.join("captures", f"{datetime.now():%Y-%m-%d_%H%M%S}_{a.name}.txt")
     print(f"writing {path}  (command + Enter = send, '# text' = note, 'q' = stop)")
-    cap = Capture(a.host, path, a.mode, a.eol, not a.no_keepalive, not a.no_resend)
-    cap.event(f"options: mode={a.mode} eol={a.eol} keepalive={not a.no_keepalive} resend={not a.no_resend}")
+    cap = Capture(a.host, path, a.mode, a.eol, not a.no_keepalive, not a.no_resend, a.first_frame)
+    cap.event(f"options: mode={a.mode} eol={a.eol} keepalive={not a.no_keepalive} resend={not a.no_resend} first_frame={a.first_frame!r}")
     try:
         cap.run(a.minutes)
     except KeyboardInterrupt:

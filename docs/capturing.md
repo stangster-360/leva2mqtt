@@ -163,6 +163,20 @@ Without `--no-keepalive` the tool appends a bare `\n` every 5 s, which would com
 2. After 20 s, terminal 2: `capture.py <ip> client-b --mode mcr`
 3. 60 s, `q` in both. Older firmware had trouble with fast reconnects – keep this last.
 
+### 11. `MCcREPORT SP1` right after power-on – `report-poweron` – ~3 min
+
+Does the module accept the report command as soon as frames arrive after power-on
+(the bridge's "reachable again" beep)?
+1. Machine off at the plug. `capture.py <ip> report-poweron --mode mcr --first-frame "MCcREPORT SP1"`
+2. Switch on. Note `# beep` if the report beep comes. 60 s after the first frames, `q`.
+
+### 12. Shot in display mode – `shot-display` – ~2 min
+
+Does the firmware's shot timer count during a shot, and from when (pump start,
+pressure rise, first drop)? A flush is not timed (seen).
+1. `capture.py <ip> shot-display --mode display`, pull a normal shot, note
+   `# first drop`, read the shot time off the display afterwards: `# display 17s`, `q`.
+
 ### What the playbook answers
 
 | Question | Scenario |

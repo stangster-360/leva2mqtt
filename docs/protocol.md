@@ -189,8 +189,9 @@ Captured during a 7 s flush (`shotscreen`, 13.10., control characters shown as `
 - Line 1: shot time and weight; line 2 as on the main screen; line 3 heater output, a
   second time field and `R=` flow by weight (g/s); line 4 measured pressure (no unit),
   a target (`9.0b` in the first frame, then `0ß`) and the weight. **seen**
-- Both time fields stayed `0s` during this flush; whether they count during a real shot
-  is **unverified**. The main screen's "last shot time" changed from `17s` (the shot
+- Both time fields stayed `0s` during this flush, as M. also saw on the machine: the
+  firmware does not time a flush. **seen** Whether and from when they count during a
+  real shot is **unverified**. The main screen's "last shot time" changed from `17s` (the shot
   before) to `0s` after the flush. The shot before ran 19.9 s by the `*` flag, so the
   firmware's shot time is measured differently (from the pressure rise or first drop?
   **unverified**).
