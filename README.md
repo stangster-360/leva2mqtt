@@ -18,6 +18,7 @@ something a smart home can use:
 - machine state (standby, eco, ready, shot running) and maintenance alerts (backflush, descale, filter)
 - buttons for wake / eco / standby and an audible setpoint report
 - one file per shot, in a format Visualizer.coffee accepts, with optional automatic upload
+- coffee bag (Visualizer Premium) and grinder selection in Home Assistant, sent with each shot
 
 ## How it works
 
@@ -55,6 +56,7 @@ pressure sensor, a flow meter.
 ## Documentation
 
 - [docs/bridge.md](docs/bridge.md) – running the bridge, configuration, entities, detection rules in use
+- [docs/visualizer.md](docs/visualizer.md) – Visualizer setup: credentials (also for passkey-only accounts), coffee bags, grinders
 - [docs/capturing.md](docs/capturing.md) – capture tool and playbook for recording raw data
 - [docs/monitor.md](docs/monitor.md) – live monitor: all decoded fields and the ready decision in the terminal
 - [docs/protocol.md](docs/protocol.md) – commands, display layouts and connection

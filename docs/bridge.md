@@ -55,7 +55,7 @@ Every key `<section>.<key>` can be set as environment variable `<SECTION>_<KEY>`
 | `mqtt.topic_prefix` | leva2mqtt | |
 | `mqtt.discovery_prefix` | homeassistant | |
 | `mqtt.publish_interval` | 1.0 | s between live updates while idle; every frame (4/s) while brewing |
-| `visualizer.username`, `password` | – | Visualizer account (Basic Auth) |
+| `visualizer.username`, `password` | – | Visualizer account (Basic Auth), see [visualizer.md](visualizer.md) |
 | `visualizer.upload` | true | start value of the switch entity |
 | `visualizer.coffee_bags_refresh` | 1800 | s between reloads of the coffee bag list; 0 = no coffee bag entity |
 | `telegram.token`, `chat_id` | – | |
@@ -240,6 +240,8 @@ was saved, the shot is uploaded a second time on the next start.
 
 ## Coffee bags (Visualizer Premium)
 
+Setup for users: [visualizer.md](visualizer.md).
+
 With Premium and coffee management switched on in the Visualizer settings, the bridge
 offers the active (not archived) coffee bags as the select entity **Coffee bag**. The
 selection is stored with each shot when it is taken; after the upload the bridge links
@@ -261,6 +263,8 @@ API (`GET /api/roasters`, `GET /api/coffee_bags`, `PATCH /api/shots/<id>` with
 against the live service until the first linked shot.
 
 ## Grinders
+
+Setup for users: [visualizer.md](visualizer.md#3-grinders).
 
 Visualizer keeps no grinder objects: it only collects the `grinder_model` values of
 past shots as dropdown suggestions, and the API does not offer them. So the grinders
