@@ -11,7 +11,7 @@ set -euo pipefail
 CTID=${CTID:-$(pvesh get /cluster/nextid)}
 CT_NAME=${CT_NAME:-leva2mqtt-test}
 BRIDGE=${BRIDGE:-vmbr0}            # must be VLAN aware (or use a bridge already on VLAN 30 and VLAN=)
-VLAN=${VLAN:-30}
+VLAN=${VLAN-30}                    # empty: no tag (bridge already on the VLAN)
 IP=${IP:-dhcp}                     # dhcp or CIDR, e.g. 192.168.30.60/24
 GW=${GW:-}                         # required with a static IP
 STORAGE=${STORAGE:-local-lvm}      # root disk
@@ -32,7 +32,12 @@ pct status "$CTID" >/dev/null 2>&1 && die "CT $CTID already exists"
 
 echo "== template"
 pveam update >/dev/null
-TEMPLATE=$(pveam available --section system | awk '/debian-[0-9]+-standard/ {print $2}' | sort -V | tail -1)
+case "$(uname -m)" in
+  x86_64) ARCH=amd64 ;;
+  aarch64) ARCH=arm64 ;;
+  *) die "unsupported host architecture $(uname -m)" ;;
+esac
+TEMPLATE=$(pveam available --section system | awk -v a="_$ARCH." '/debian-[0-9]+-standard/ && index($2, a) {print $2}' | sort -V | tail -1)
 [ -n "$TEMPLATE" ] || die "no Debian standard template available"
 pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || pveam download "$TEMPLATE_STORAGE" "$TEMPLATE"
 

@@ -13,6 +13,7 @@ Docker (nesting, keyctl), tagged into a VLAN, and clones this repository to
 ```sh
 VLAN=30 IP=dhcp ./create-test-lxc.sh
 VLAN=30 IP=192.168.30.60/24 GW=192.168.30.1 STORAGE=local-lvm ./create-test-lxc.sh
+BRIDGE=vmbr30 VLAN= IP=dhcp STORAGE=local ./create-test-lxc.sh   # bridge already on VLAN 30
 ```
 
 The bridge (`BRIDGE`, default `vmbr0`) must be VLAN aware. The VLAN needs DHCP (or a
