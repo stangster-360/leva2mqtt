@@ -255,7 +255,10 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
 
 - Sensors: state, boiler temperature, setpoint, heater output, heater output last
   minute, brew pressure, target pressure, weight, flow by weight, flow meter rate,
-  flow meter volume, control mode, profile, PID terms (disabled by default),
+  flow meter volume, control mode, profile, pump time (running time of the `*` flag,
+  else the last run; the bridge's own clock), heater average spread (diagnostic,
+  attribute `heater_averages` = the last three per-minute averages; ready needs a spread
+  below 1.0), PID terms and constants Kc / Ti / Td (diagnostic, disabled by default),
   last shot (timestamp, attributes = shot record), last shot yield, last shot duration,
   shots waiting for delivery (diagnostic), maintenance alerts
 - Binary sensors: pump, heating up, boiler at temperature, ready, steam mode, hot water,

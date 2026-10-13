@@ -64,6 +64,8 @@ class Tracker:
         self._grace_until = 0.0               # ready survives a boiler drop until then
         self._pump_end: Optional[float] = None
         self._pump_on = False
+        self._pump_start: Optional[float] = None
+        self._last_pump: Optional[float] = None   # duration of the last pump run, s
         self._vol_base: Optional[int] = None
         self._vol_last: Optional[int] = None
         self._vol_change: float = 0.0
@@ -75,6 +77,7 @@ class Tracker:
         self._reset_ready()
         self._vol_base = self._vol_last = None
         self._pump_on = False
+        self._pump_start = None
 
     def update(self, f: Frame, t: float) -> Optional[tuple[str, str]]:
         """Process one frame. Returns (old, new) power mode on a mode change."""
@@ -87,6 +90,7 @@ class Tracker:
             self._reset_ready()
             self._vol_base = self._vol_last = None
             self._pump_on = False
+            self._pump_start = None
             self.state = STANDBY if self.mode == MODE_STANDBY else ECO
             return change
 
@@ -118,9 +122,22 @@ class Tracker:
         on = bool(f.pump)
         if self._pump_on and not on:
             self._pump_end = t
+            if self._pump_start is not None:
+                self._last_pump = t - self._pump_start
+            self._pump_start = None
         if on and not self._pump_on:
             self.hot_water = False
+            self._pump_start = t
         self._pump_on = on
+
+    def pump_time(self, t: float) -> Optional[float]:
+        """Seconds since the pump started ('*'), or the length of the last run, 0 before
+        the first one. The frame has no shot timer; this is the bridge's own clock."""
+        if self.mode != MODE_AWAKE:
+            return None
+        if self._pump_start is not None:
+            return t - self._pump_start
+        return self._last_pump if self._last_pump is not None else 0.0
 
     def _update_steam(self, f: Frame) -> None:
         temp, sp = f.temperature, f.setpoint

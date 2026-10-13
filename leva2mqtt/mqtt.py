@@ -48,6 +48,15 @@ SENSORS: dict[str, tuple] = {
     "pid_p": ("PID P term", None, None, "measurement", None, "diagnostic", False, 1),
     "pid_i": ("PID I term", None, None, "measurement", None, "diagnostic", False, 1),
     "pid_d": ("PID D term", None, None, "measurement", None, "diagnostic", False, 1),
+    "pid_kc": ("PID Kc", None, None, None, None, "diagnostic", False, 1),
+    "pid_ti": ("PID Ti", None, None, None, None, "diagnostic", False, 1),
+    "pid_td": ("PID Td", None, None, None, None, "diagnostic", False, 1),
+    # bridge's own clock for the '*' flag: running time, else the last run (frame has no timer)
+    "pump_time": ("Pump time", "s", "duration", "measurement", "mdi:timer-outline", None, True, 1),
+    # spread of the last three per-minute heater averages in %-points (ready needs < 1.0);
+    # the averages themselves are attributes
+    "heater_avg_spread": ("Heater average spread", "%", None, "measurement",
+                          "mdi:arrow-expand-vertical", "diagnostic", True, 1),
     "alert": ("Maintenance alerts", None, None, None, "mdi:alert-circle-outline", None, True, None),
 }
 
@@ -280,6 +289,9 @@ class MqttOutput:
                 c[k] = v
         if not enabled:
             c["enabled_by_default"] = False
+        if key == "heater_avg_spread":
+            c["json_attributes_topic"] = f"{self.base}/state"
+            c["json_attributes_template"] = "{{ {'heater_averages': value_json.heater_avgs} | tojson }}"
         self._config("sensor", key, c)
 
     def _announce_settings(self) -> None:

@@ -192,7 +192,7 @@ class Bridge:
         state = self.tracker.state
         if state != self._last_state:
             log.info("state %s", state)
-        self._last_live = self._live(f)
+        self._last_live = self._live(f, t)
         if self.mqtt and (state != self._last_state or state == BREWING
                           or self.modes.take_changed()
                           or t - self._last_publish >= self.cfg.mqtt.publish_interval):
@@ -200,17 +200,21 @@ class Bridge:
             self.mqtt.publish_live(self._last_live | self._mode_values())
         self._last_state = state
 
-    def _live(self, f: Frame) -> dict:
+    def _live(self, f: Frame, t: float) -> dict:
         tr = self.tracker
+        pump_time = tr.pump_time(t)
         values = {
             "state": tr.state, "mode": f.mode,
             "pump": bool(f.pump), "heating": tr.heating, "ready": tr.ready,
             "at_temperature": tr.at_temperature,
             "steam": tr.steam, "hot_water": tr.hot_water,
+            "pump_time": None if pump_time is None else round(pump_time, 1),
+            "heater_avg_spread": tr.heater_avg_spread,
+            "heater_avgs": list(tr.heater_avgs),
         }
         for key in ("temperature", "setpoint", "heater", "heater_avg", "pressure",
                     "target_pressure", "weight", "flow_weight", "flow_rate", "volume",
-                    "profile", "pid_p", "pid_i", "pid_d"):
+                    "profile", "pid_p", "pid_i", "pid_d", "pid_kc", "pid_ti", "pid_td"):
             values[key] = getattr(f, key)
         return values
 
