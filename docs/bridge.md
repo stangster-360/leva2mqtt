@@ -202,9 +202,11 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
 Differences to the current proposals in [detection-rules.md](detection-rules.md), to be
 aligned once the cold-start captures are evaluated:
 
-- **Ready:** the code uses a single band (±0.25 K for 240 s). detection-rules.md now
-  proposes two stages: "boiler at temperature" (±0.5 K for 2 min) and "ready" when the
-  per-minute heater average has settled as well.
+- **Ready:** the code uses a single band (±0.25 K for 240 s). The cold-start capture
+  showed that the firmware's ready beep follows the per-minute heater average (pos
+  73–77): ready when the boiler is within ±0.5 K and the last three per-minute averages
+  lie within less than 1.0 percentage point, evaluated at each update of the field (two
+  hits, see detection-rules.md). To be ported.
 - **Other client:** the code re-sends `MCr` after 5 s without `MCr` frames. With the
   Leva Companion app connected this would break the app's display; detection-rules.md
   proposes to expose "other client active" and keep reading the display frames instead.

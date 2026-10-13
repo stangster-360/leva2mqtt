@@ -127,3 +127,12 @@ def test_config_requires_host(tmp_path):
     except ConfigError:
         return
     raise AssertionError("expected ConfigError")
+
+
+def test_real_frame_heater_at_full_power():
+    # captured 2026-10-13, cold start: setpoint 090.0, heater 100 %
+    raw = ("{ -1PID020.80090.01000650.30000.00000.00000.0000.0000009.4058.0014.5020.0"
+           "?????OFF" + "?" * 200)
+    raw = raw[:288].ljust(288, "?") + "}"
+    f = parse(raw)
+    assert f.setpoint == 90.0 and f.heater == 100 and f.temperature == 20.8

@@ -25,8 +25,8 @@ class Frame:
     pump: Optional[bool]            # pos 2: '*' pump / brew program active, '-' idle
     mode: Optional[str]             # pos 4-6: PID, ECO, OFF, CLD, ATN; None in standby
     temperature: Optional[float]    # pos 7-12: boiler, °C
-    setpoint: Optional[float]       # pos 13-18: °C (eco setpoint while in eco)
-    heater: Optional[int]           # pos 19-20: heater output, %
+    setpoint: Optional[float]       # pos 13-17: °C, one decimal (eco setpoint while in eco)
+    heater: Optional[int]           # pos 18-20: heater output, %, '100' at full power
     pid_p: Optional[float]          # pos 21-26
     pid_i: Optional[float]          # pos 27-32
     pid_d: Optional[float]          # pos 33-38
@@ -99,8 +99,8 @@ def parse(line: str) -> Optional[Frame]:
         pump=True if flag == "*" else False if flag == "-" else None,
         mode=mode,
         temperature=_num(f[7:13]),
-        setpoint=_num(f[13:19]),
-        heater=_num(f[19:21], int),
+        setpoint=_num(f[13:18]),
+        heater=_num(f[18:21], int),
         pid_p=_num(f[21:27]),
         pid_i=_num(f[27:33]),
         pid_d=_num(f[33:39]),

@@ -21,8 +21,8 @@ def frame(pump="-", mode="PID", temp=90.0, setpoint=90.0, heater=10, volume=0, p
     buf[3] = "1"
     _put(buf, 4, mode)
     _put(buf, 7, f"{temp:06.2f}")
-    _put(buf, 13, f"{setpoint:06.2f}")
-    _put(buf, 19, f"{heater:02d}")
+    _put(buf, 13, f"{setpoint:05.1f}")
+    _put(buf, 18, f"{heater:03d}")
     _put(buf, 73, "010.0")
     _put(buf, 152, f"{volume:03d}{pulses:05d}{rate:03d}001.0")
     if target is not None:
