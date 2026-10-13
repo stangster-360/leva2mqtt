@@ -41,7 +41,8 @@ SENSORS: dict[str, tuple] = {
     "target_pressure": ("Target pressure", "bar", "pressure", "measurement", None, None, True, 1),
     "weight": ("Weight", "g", "weight", "measurement", None, None, True, 1),
     "flow_weight": ("Flow by weight", "g/s", None, "measurement", "mdi:water", None, True, 1),
-    "flow_rate": ("Flow meter rate", "mL/min", "volume_flow_rate", "measurement", None, None, True, 0),
+    # no device class: HA's volume_flow_rate rejects mL/min and drops the whole discovery message
+    "flow_rate": ("Flow meter rate", "mL/min", None, "measurement", "mdi:water-pump", None, True, 0),
     "volume": ("Flow meter volume", "mL", "volume", "measurement", None, None, True, 0),
     "mode": ("Control mode", None, None, None, "mdi:tune", "diagnostic", True, None),
     "profile": ("Profile", None, None, None, "mdi:chart-bell-curve", None, True, None),
