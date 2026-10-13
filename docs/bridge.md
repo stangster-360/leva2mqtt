@@ -275,9 +275,8 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
 
 - `tools/replay.py <capture>` – run a capture through the detection logic and print
   states, beeps and runs.
-- `tools/monitor.py <ito-ip>` – live view of all decoded fields, refreshed every second, with
-  the ready decision step by step (`--lines` for one line per update, `--raw` for the raw
-  frame, `--port 2300` against the fake module). Never wakes the machine unless `--wake`.
+- `tools/monitor.py <ito-ip>` – live view of all decoded fields and the ready decision,
+  see [monitor.md](monitor.md).
 - `tools/fake_ito.py <capture> --port 2300` – serve a capture as a fake module; start
   the bridge with `MACHINE_HOST=127.0.0.1 MACHINE_PORT=2300`.
 - `python -m pytest tests` – unit tests with synthetic frames.

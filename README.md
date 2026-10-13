@@ -56,6 +56,7 @@ pressure sensor, a flow meter.
 
 - [docs/bridge.md](docs/bridge.md) – running the bridge, configuration, entities, detection rules in use
 - [docs/capturing.md](docs/capturing.md) – capture tool and playbook for recording raw data
+- [docs/monitor.md](docs/monitor.md) – live monitor: all decoded fields and the ready decision in the terminal
 - [docs/protocol.md](docs/protocol.md) – commands, display layouts and connection
   behaviour, as observed on real hardware
 - [docs/detection-rules.md](docs/detection-rules.md) – how states, shots, steam and hot water are recognised
