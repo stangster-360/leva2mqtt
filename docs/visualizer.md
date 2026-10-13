@@ -8,7 +8,8 @@ coffee bags and grinders. Background on the upload queue: [bridge.md](bridge.md#
 | Shot upload | free or Premium | `visualizer.username`, `visualizer.password` | switch **Upload shots to Visualizer** |
 | Coffee bags | Premium, coffee management on | nothing extra (`visualizer.coffee_bags_refresh`) | select **Coffee bag**, button **Reload coffee bags** |
 | Grinders | free or Premium | `shots.grinders` | select **Grinder** |
-| Grind setting, dose, free-text bean | free or Premium | – | text **Grinder setting**, number **Dose**, text **Bean** |
+| Grind setting, dose | free or Premium | – | text **Grinder setting**, number **Dose** |
+| Free-text bean | free, or Premium without coffee bags | – | text **Bean** (hidden while coffee bags exist) |
 
 ## 1. Credentials
 
@@ -59,7 +60,12 @@ What happens:
   upload the bridge links the shot to the bag; Visualizer then fills roaster, coffee,
   roast date and roast level from the bag. Log line on success:
   `…_shot.json: coffee_bag done`.
-- **None** = no link; the free-text **Bean** is used instead.
+- **None** = the shot is not linked to a bag.
+- **Bean or Coffee bag, never both:** while Visualizer returns at least one bag, the
+  free-text **Bean** entity is removed from Home Assistant and an old Bean value is not
+  sent any more. Without bags (free account, coffee management off, all bags archived)
+  **Coffee bag** disappears and **Bean** comes back. Shortly after a bridge start both
+  can show for a moment, until the bag list is loaded.
 - Without bags (free account, coffee management off) there is no **Coffee bag** entity.
   If a bag is selected but Visualizer does not take the link (coffee management off),
   the log says so and the shot stays uploaded without a bag.

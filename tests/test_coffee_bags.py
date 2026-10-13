@@ -75,12 +75,16 @@ def test_setting_and_select_entity():
     assert parse_setting("coffee_bag", " Kenia – K ") == "Kenia – K"
     out = _output()
     out.cfg.visualizer.username, out.cfg.visualizer.password = "u", "p"
+    disc = "homeassistant/{}/leva2mqtt_espresso_machine/{}/config"
     out.set_coffee_bags(["Kenia – K"])
     sel = _configs(out)["coffee_bag"]
     assert sel["options"] == [NO_BAG, "Kenia – K"]
+    assert (disc.format("text", "bean"), "") in out.published      # bags hide "Bean"
     out.published.clear()
     out.set_coffee_bags(None)
-    assert out.published == [("homeassistant/select/leva2mqtt_espresso_machine/coffee_bag/config", "")]
+    assert out.published[0] == (disc.format("select", "coffee_bag"), "")
+    assert out.published[1][0] == disc.format("text", "bean")      # "Bean" is back
+    assert out.published[1][1]["name"] == "Bean"
 
 
 def _bridge():
@@ -159,3 +163,16 @@ def test_empty_text_settings_show_none():
     out = _output()
     out._announce_settings()
     assert "None" in _configs(out)["bean"]["value_template"]
+
+
+def test_bean_not_used_with_coffee_bags():
+    b = _bridge()
+    b.settings["bean"] = "old free text"
+    from leva2mqtt.shots import SHOT
+    class R:  # minimal run
+        kind, yield_g = SHOT, None
+        def summary(self):
+            return {"kind": SHOT}
+    assert b._record(R())["bean"] == "old free text"
+    b.apply_bags([{"id": "b1", "label": "Kenia – K"}])
+    assert "bean" not in b._record(R())

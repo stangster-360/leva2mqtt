@@ -288,7 +288,10 @@ class Bridge:
             if run.yield_g:
                 rec["ratio"] = round(run.yield_g / dose, 2)
         if run.kind == SHOT:
-            for key in ("bean", "grinder", "grinder_setting"):
+            # with coffee bags the "Bean" entity is hidden; a leftover value is not used
+            keys = ("grinder", "grinder_setting") if self._bags else ("bean", "grinder",
+                                                                      "grinder_setting")
+            for key in keys:
                 if self.settings.get(key):
                     rec[key] = self.settings[key]
             label = self.settings.get("coffee_bag")

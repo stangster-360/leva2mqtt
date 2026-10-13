@@ -246,8 +246,13 @@ With Premium and coffee management switched on in the Visualizer settings, the b
 offers the active (not archived) coffee bags as the select entity **Coffee bag**. The
 selection is stored with each shot when it is taken; after the upload the bridge links
 the shot to the bag, and Visualizer fills roaster, coffee, roast date and roast level
-from the bag. The free-text **Bean** entity stays for accounts without coffee
-management; Visualizer's bag fields win when both are set.
+from the bag.
+
+**Bean or Coffee bag, never both.** As soon as Visualizer returns at least one coffee
+bag, the free-text **Bean** entity is removed from Home Assistant and a leftover Bean
+value is no longer sent with shots. When the list becomes empty again (bags archived,
+coffee management or Premium off), **Coffee bag** disappears and **Bean** comes back.
+Accounts without coffee management only ever see **Bean**.
 
 - The list is loaded at start, every `visualizer.coffee_bags_refresh` seconds and with
   the button **Reload coffee bags**. On an error the last list stays.
@@ -303,10 +308,11 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
 - Binary sensors: pump, heating up, boiler at temperature, ready, steam mode, hot water,
   maintenance alert (problem), other client connected (diagnostic)
 - Buttons: wake (`MCa`), eco (`MCe`), standby (`MCE`), beep setpoint
-- Settings: dose (number), bean, grinder setting (text; shown as "None" when empty,
-  entering "None" clears them), grinder (select, only with
-  `shots.grinders`), coffee bag (select, only with bags on Visualizer) and a button to reload them, Visualizer upload and Telegram
-  message (switches, only when configured)
+- Settings: dose (number); grinder setting (text); bean (text, only while Visualizer
+  has no coffee bags) or coffee bag (select, only with bags on Visualizer) and a button
+  to reload them; grinder (select, only with `shots.grinders`); Visualizer upload and
+  Telegram message (switches, only when configured). Empty text entities show "None";
+  entering "None" clears them.
 
 ## Not done yet
 

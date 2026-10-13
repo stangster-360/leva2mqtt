@@ -313,13 +313,9 @@ class MqttOutput:
             "min": 1, "max": 40, "step": 0.1, "mode": "box", "entity_category": "config",
             "state_topic": f"{s}/dose", "command_topic": f"{s}/dose/set",
             **self._availability(machine=False)})
-        for key, name, icon in (("bean", "Bean", "mdi:seed"),
-                                ("grinder_setting", "Grinder setting", "mdi:cog")):
-            self._config("text", key, {
-                "name": name, "icon": icon, "max": 100, "entity_category": "config",
-                "state_topic": f"{s}/{key}", "command_topic": f"{s}/{key}/set",
-                "value_template": "{{ value if value else '%s' }}" % EMPTY_TEXT,
-                **self._availability(machine=False)})
+        self._text("grinder_setting", "Grinder setting", "mdi:cog")
+        if self._bag_options is None:      # bean or coffee bag, see _announce_bags
+            self._text("bean", "Bean", "mdi:seed")
         if self.cfg.visualizer_enabled:
             self._config("button", "refresh_coffee_bags", {
                 "name": "Reload coffee bags", "icon": "mdi:refresh", "entity_category": "config",
@@ -345,13 +341,29 @@ class MqttOutput:
                 "state_topic": f"{s}/{key}", "command_topic": f"{s}/{key}/set",
                 "payload_on": "ON", "payload_off": "OFF", **self._availability(machine=False)})
 
+    def _text(self, key: str, name: str, icon: str) -> None:
+        s = f"{self.base}/settings"
+        self._config("text", key, {
+            "name": name, "icon": icon, "max": 100, "entity_category": "config",
+            "state_topic": f"{s}/{key}", "command_topic": f"{s}/{key}/set",
+            "value_template": "{{ value if value else '%s' }}" % EMPTY_TEXT,
+            **self._availability(machine=False)})
+
+    def _remove(self, component: str, key: str) -> None:
+        self._pub(f"{self.disc}/{component}/{self.uid}/{key}/config", "", retain=True, qos=1)
+        self._announced.discard(f"{component}.{key}")
+
     def _announce_bags(self) -> None:
+        """Coffee bags available: select "Coffee bag", no free-text "Bean" (both would
+        name the coffee). No bags: "Bean" only."""
         key = "coffee_bag"
         if self._bag_options is None:
             if self._bag_announced:   # remove the entity (e.g. coffee management off)
-                self._pub(f"{self.disc}/select/{self.uid}/{key}/config", "", retain=True, qos=1)
+                self._remove("select", key)
                 self._bag_announced = False
+            self._text("bean", "Bean", "mdi:seed")
             return
+        self._remove("text", "bean")
         s = f"{self.base}/settings"
         self._config("select", key, {
             "name": "Coffee bag", "icon": "mdi:sack", "entity_category": "config",
