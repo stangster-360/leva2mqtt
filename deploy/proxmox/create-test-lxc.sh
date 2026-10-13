@@ -79,6 +79,10 @@ pct exec "$CTID" -- env BRANCH="$BRANCH" REPO="$REPO" bash -euc '
   git clone --branch "$BRANCH" "$REPO" /opt/leva2mqtt
   cp /opt/leva2mqtt/deploy/test/.env.example /opt/leva2mqtt/deploy/test/.env
   mkdir -p /opt/leva2mqtt/deploy/test/captures
+  ln -s /opt/leva2mqtt/deploy/test/leva2mqtt-update.service \
+        /opt/leva2mqtt/deploy/test/leva2mqtt-update.timer /etc/systemd/system/
+  systemctl daemon-reload
+  systemctl enable --now leva2mqtt-update.timer
 '
 
 ADDR=$(pct exec "$CTID" -- hostname -I | awk '{print $1}')

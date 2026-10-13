@@ -32,7 +32,13 @@ docker compose logs -f leva2mqtt fake-ito
 
 Watch MQTT: `docker compose exec mosquitto mosquitto_sub -v -t 'leva2mqtt-test/#'`.
 
-Update after a push: `git pull && docker compose --profile fake up -d --build`.
+## Updates
+
+The LXC script installs `leva2mqtt-update.timer`: every 5 minutes it runs
+`auto-update.sh`, which pulls `main` and, if something changed and the bridge is
+running, rebuilds and restarts the running services (with the fake module if it runs).
+Log: `journalctl -u leva2mqtt-update`. Manual: `systemctl start leva2mqtt-update`.
+Off: `systemctl disable --now leva2mqtt-update.timer`.
 
 ## Limits
 
