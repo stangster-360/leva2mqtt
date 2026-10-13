@@ -316,11 +316,14 @@ Cold start (first frame 35.6 °C, display stream, no interaction for 55 min):
   | Capture | Last per-minute averages before the beep | Update → beep |
   |---|---|---|
   | `heatup-cold2` | 22.4, 16.0, **10.4, 10.7, 10.1** | 10:36:35 → ~10:36:41 |
-  | `hb-resend` (warm) | 3.1, 6.2, 3.7, **4.7, 4.1, 4.7** | 14:07:26 → ~14:07:27 |
+  | `hb-resend` (warm) | 3.1, 6.2, 3.7, **4.7, 4.1, 4.7** | 14:07:40 → before 14:07:50 (note `ready beep`) |
 
   The beep came at the first update at which the **last three averages lay within less
-  than 1 percentage point** (range 0.6 both times). One update earlier the range was 6.3
-  and 1.0 – no beep. This matches the manual ("steady state … last three minutes") and
+  than 1 percentage point** (range 0.6 both times). One update earlier the range was 5.6
+  and 1.0 – no beep. The field updated every 60.4 s in both captures (raw timestamps;
+  the earlier "14:07:26" for `hb-resend` came from the chat, the capture shows 14:07:40).
+  `tools/replay.py` with the bridge's tracker marks "ready" at exactly these two updates
+  (10:36:35, 14:07:40). This matches the manual ("steady state … last three minutes") and
   explains why the beep is sporadic: a temperature that swings slowly keeps the heater
   average moving. Rule **unverified** (two hits, threshold could also be relative).
 - The buzzer sequence for the ready beep is very short (10 × 30 ms on, 90 ms off in the

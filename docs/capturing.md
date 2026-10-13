@@ -35,6 +35,30 @@ While recording:
 
 Close every other client (e.g. other apps talking to the module) first.
 
+### Live view
+
+[`tools/monitor.py`](../tools/monitor.py) connects the same way but writes no file. It
+decodes the stream with the bridge's parser and shows every known field once per second,
+with the notes from [protocol.md](protocol.md) (*unverified* etc.). Fields the frame
+does not deliver are left out.
+
+```sh
+python3 tools/monitor.py <ito-ip> [--mode mcr|display|none] [--interval 1] [--lines] [--raw]
+                                  [--no-keepalive] [--no-resend] [--wake]
+```
+
+- `--lines`: one line per update instead of the redrawn screen (handy next to a capture).
+- `--raw`: also show the raw `MCr` frame with character positions.
+- `--no-resend`: just watch, e.g. while the Leva Companion app is connected.
+- `--wake`: send `MCcREPORT SP1` once after connecting (wakes the machine, it beeps).
+  Without it the tool never wakes the machine.
+
+The *Ready* section shows the bridge's own ready decision step by step (boiler band,
+the last three per-minute heater averages and their spread, time to the next update) –
+handy next to a heat-up capture to compare with the ready beep. The firmware's own
+`READY` and alerts appear only while display frames arrive (`--mode display`, or
+another client switched the mode); the last ones seen stay listed.
+
 ## Playbook
 
 ### Preparation

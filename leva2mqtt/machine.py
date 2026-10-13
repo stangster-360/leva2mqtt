@@ -152,6 +152,23 @@ class Tracker:
             self.hot_water = False
             self._vol_base = vol
 
+    @property
+    def heater_avgs(self) -> tuple:
+        """Per-minute heater averages compared for "ready", oldest first."""
+        return tuple(self._avgs)
+
+    @property
+    def heater_avg_spread(self) -> Optional[float]:
+        """Range of heater_avgs once there are ready_samples of them, else None."""
+        if len(self._avgs) < self.s.ready_samples:
+            return None
+        return round(max(self._avgs) - min(self._avgs), 2)
+
+    @property
+    def heater_avg_updated(self) -> Optional[float]:
+        """Time of the last (seen or assumed) update of the per-minute average."""
+        return self._avg_t
+
     def _reset_ready(self) -> None:
         self.ready = False
         self._avgs = []

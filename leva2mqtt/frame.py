@@ -31,12 +31,17 @@ class Frame:
     pid_i: Optional[float]          # pos 27-32
     pid_d: Optional[float]          # pos 33-38
     temperature_rate: Optional[float]  # pos 45-52: rate of change used by the D term
+    pid_kc: Optional[float]         # pos 53-57: PID constant Kc
+    pid_ti: Optional[float]         # pos 58-62: PID constant Ti
+    pid_td: Optional[float]         # pos 63-67: PID constant Td
     heater_avg: Optional[float]     # pos 73-77: average heater output over the last minute, %
     volume: Optional[int]           # pos 152-154: flow meter volume since pump start, ml
     pulses: Optional[int]           # pos 155-159: flow meter pulses
     flow_rate: Optional[int]        # pos 160-162: flow meter rate, ml/min
     target_pressure: Optional[float]  # pos 192-196: target of the active profile, bar
     pressure: Optional[float]       # pos 197-201: brew pressure, bar (current value: unverified)
+    pressure_min: Optional[float]   # pos 202-206: brew pressure, bar (minimum of the interval: unverified)
+    pressure_max: Optional[float]   # pos 207-211: brew pressure, bar (maximum of the interval: unverified)
     weight: Optional[float]         # pos 226-230: scale, g
     flow_weight: Optional[float]    # pos 231-235: flow by weight, g/s
     profile: Optional[str]          # pos 245-265: active profile name (position unverified)
@@ -105,12 +110,17 @@ def parse(line: str) -> Optional[Frame]:
         pid_i=_num(f[27:33]),
         pid_d=_num(f[33:39]),
         temperature_rate=_num(f[45:53]),
+        pid_kc=_num(f[53:58]),
+        pid_ti=_num(f[58:63]),
+        pid_td=_num(f[63:68]),
         heater_avg=_num(f[73:78]),
         volume=_num(f[152:155], int),
         pulses=_num(f[155:160], int),
         flow_rate=_num(f[160:163], int),
         target_pressure=_num(f[192:197]),
         pressure=_num(f[197:202]),
+        pressure_min=_num(f[202:207]),
+        pressure_max=_num(f[207:212]),
         weight=_num(f[226:231]),
         flow_weight=_num(f[231:236]),
         profile=_text(f[245:266]),
