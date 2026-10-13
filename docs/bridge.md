@@ -66,6 +66,8 @@ Every key `<section>.<key>` can be set as environment variable `<SECTION>_<KEY>`
 | `bridge.report_min_offline` | 10 | see "Setpoint beep" |
 | `bridge.ready_band`, `ready_spread` | 0.5 K, 1.0 %-points | see "Ready" |
 | `bridge.steam_threshold` | 100 °C | |
+| `bridge.alert_interval` | 300 s | see "Maintenance alerts" |
+| `bridge.other_client_quiet` | 180 s | see "Other client" |
 | `log_level` | INFO | |
 
 ## Connection
@@ -75,8 +77,10 @@ Rules from [detection-rules.md](detection-rules.md), section 1:
 - `MCr` after every connect.
 - Watchdog: nothing at all received for 3 s → close, reconnect every 2 s.
 - Keepalive newline every 5 s.
-- No `MCr` frames for 5 s (heartbeat only, display frames) → re-send `MCr`.
-- The bridge only ever sends `MCr`, `MCa`, `MCe`, `MCE` and `MCcREPORT SP1`.
+- No frames at all for 5 s (heartbeat only) → re-send `MCr`.
+- Display frames while `MCr` is wanted (more than 1.5 s after the bridge's own `MCr`),
+  an `XML=` line or setup-dump lines: another client is active, see "Other client".
+- The bridge only ever sends `MCr`, `MC@`, `MCa`, `MCe`, `MCE` and `MCcREPORT SP1`.
   Everything else is refused in code.
 
 ## Setpoint beep (`MCcREPORT SP1`)
@@ -95,6 +99,9 @@ the bridge sends `MCcREPORT SP1` and then `MCr`. A restart of the bridge does no
 - First connection after a bridge start: no beep, whatever state the machine is in.
 - The "Beep setpoint" button sends the same sequence. If it wakes the machine, no
   second, automatic report follows.
+- While another client holds the module in display mode, only `MCcREPORT SP1` is sent;
+  the `MCr` is left out so the client keeps working (deviation from the requirement,
+  on purpose).
 
 Whether the module accepts `MCcREPORT SP1` in the first seconds after power-on, as
 soon as frames arrive, is **unverified**.
@@ -134,6 +141,42 @@ The module has no ready flag in `MCr`, and the firmware's `READY` is shown for o
 Replay of the captures: cold start `heatup-cold2` ready at 494.8 s, M.'s note "beep
 10 s ago" at 510 s; warm power cycle `hb-resend` ready at 391.8 s, beep noted at 401 s.
 Two hits; whether the 1-point spread is absolute or relative is **unverified**.
+
+## Maintenance alerts
+
+Alerts (`BACKFL`, `DSCALE`, `FILTER`, `REFILL`, `PROTECT`, `VALVE`, `ERR:…`) and the
+firmware's `READY` exist only in display frames. Decided 13.10.:
+
+- While idle (awake or eco; no pump run incl. its 5 s tail, no steam, no hot water)
+  the bridge switches to `MC@` every `bridge.alert_interval` seconds (default 300; the
+  first poll 30 s after the connection), reads display frames for 1 s and switches
+  back to `MCr`. No display frame within 3 s ends the poll as well.
+- If the shot screen appears during a poll, the bridge switches back at once. At most
+  ~0.6 s of pre-infusion is lost (about 1 in 300 shots).
+- An alert counts when it appears in any main-screen frame of a poll; it is cleared
+  after two polls without it, since alerts may blink (**unverified**). Their position
+  on the screen is unknown (no alert captured yet), so the whole main screen is
+  searched.
+- Entities: "Maintenance alerts" (`none` or e.g. `BACKFL`, unknown until the first
+  poll) and the binary sensor "Maintenance alert" (problem).
+
+## Other client
+
+The report mode is global for the module. The Leva Companion app sends `MC?`, `MCu`
+and `MC@` when it connects (seen), which switches every connection to display frames.
+Switching straight back to `MCr` would break the app's display, so the bridge:
+
+- recognises the app by the `XML=` reply, the setup dump or display frames it did not
+  ask for,
+- stops its alert polls and does not send `MCr` on its own,
+- reads what the display shows (temperature, setpoint, heater, pressure, weight,
+  standby / eco, shot screen) and keeps publishing it; no shot logging and no
+  "ready" changes meanwhile (no per-minute average in the display),
+- reports "Other client connected" (diagnostic binary sensor),
+- switches back to `MCr` after `bridge.other_client_quiet` seconds (default 180)
+  without identify / dump lines and without input on the machine's display. If the
+  app is still open it switches back to display frames again and the phase starts
+  over. The interval is **unverified**.
 
 ## Pump runs and shots
 
@@ -212,23 +255,17 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
   minute, brew pressure, target pressure, weight, flow by weight, flow meter rate,
   flow meter volume, control mode, profile, PID terms (disabled by default),
   last shot (timestamp, attributes = shot record), last shot yield, last shot duration,
-  shots waiting for delivery (diagnostic)
-- Binary sensors: pump, heating up, boiler at temperature, ready, steam mode, hot water
+  shots waiting for delivery (diagnostic), maintenance alerts
+- Binary sensors: pump, heating up, boiler at temperature, ready, steam mode, hot water,
+  maintenance alert (problem), other client connected (diagnostic)
 - Buttons: wake (`MCa`), eco (`MCe`), standby (`MCE`), beep setpoint
 - Settings: dose (number), bean, grinder setting (text), Visualizer upload and
   Telegram message (switches, only when configured)
 
 ## Not done yet
 
-Differences to the current proposals in [detection-rules.md](detection-rules.md):
-
-- **Other client:** the code re-sends `MCr` after 5 s without `MCr` frames. With the
-  Leva Companion app connected this would break the app's display; detection-rules.md
-  proposes to expose "other client active" and keep reading the display frames instead.
-
-- Maintenance alerts (`BACKFL`, `DSCALE`, …) only exist in display frames. Decided
-  (13.10.): while idle (no `*`, no steam), switch to `MC@` for about 1 s every 5 min,
-  then back to `MCr`; on a shot screen switch back at once.
+- A capture with a real alert (scenario 7, backflush) to confirm the alert position
+  and blinking, and a capture of the shot screen in display mode.
 - Multi-arch images (amd64 / arm64 / armv7) and the Home Assistant add-on.
 - Backflush detection (no capture yet).
 

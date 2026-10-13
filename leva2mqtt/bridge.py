@@ -9,9 +9,12 @@ from typing import Any, Optional
 
 from . import telegram, visualizer
 from .config import Config
+from .display import Display
 from .frame import Frame
 from .link import Link
-from .machine import BREWING, OFFLINE, Settings, Tracker, WakeReporter
+from .machine import (BREWING, HOT_WATER, MODE_AWAKE, MODE_ECO, OFFLINE, STEAM, Settings,
+                      Tracker, WakeReporter)
+from .modes import ModeController
 from .outbox import Entry, Outbox
 from .shots import SHOT, Run, ShotRecorder
 
@@ -36,12 +39,15 @@ class Bridge:
             self.settings["visualizer_upload"] = cfg.visualizer.upload
         if cfg.telegram_enabled:
             self.settings["telegram_notify"] = cfg.telegram.notify
-        self.link = Link(cfg.machine.host, cfg.machine.port, self._on_frame, self._on_link)
+        self.modes = ModeController(interval=b.alert_interval, quiet=b.other_client_quiet)
+        self.link = Link(cfg.machine.host, cfg.machine.port, self._on_frame, self._on_link,
+                         on_display=self._on_display, on_foreign=self._on_foreign)
         self.mqtt = None
         self._last_publish = 0.0
         self._last_state: Optional[str] = None
         self._tasks: set[asyncio.Task] = set()
         self._last_shot: Optional[dict] = None
+        self._last_live: Optional[dict] = None
         self.outbox = Outbox(cfg.shots.directory, cfg.shots.keep, self._senders(),
                              on_delivered=self._on_delivered, on_change=self._on_queue)
 
@@ -60,6 +66,7 @@ class Bridge:
             except NotImplementedError:   # Windows
                 pass
         health = self._spawn(self._health())
+        ticker = self._spawn(self._ticker())
         self.outbox.load()
         outbox = loop.create_task(self.outbox.run())
         log.info("leva2mqtt started: machine %s:%s, outputs: %s", self.cfg.machine.host,
@@ -68,8 +75,10 @@ class Bridge:
             await self.link.run()
         finally:
             health.cancel()
-            if self._tasks - {health}:
-                await asyncio.wait(self._tasks - {health}, timeout=10)
+            ticker.cancel()
+            rest = self._tasks - {health, ticker}
+            if rest:
+                await asyncio.wait(rest, timeout=10)
             # let a running upload finish; unfinished shots stay in pending/
             self.outbox.stop()
             try:
@@ -111,6 +120,25 @@ class Bridge:
                     pass
             await asyncio.sleep(10)
 
+    async def _ticker(self) -> None:
+        """Drives the alert poll and the end of an other-client phase."""
+        while True:
+            await asyncio.sleep(0.5)
+            if self.link.up:
+                self._mode_request(self.modes.tick(time.time(), self._idle()))
+
+    def _idle(self) -> bool:
+        return (self.tracker.mode in (MODE_AWAKE, MODE_ECO)
+                and self.tracker.state not in (BREWING, STEAM, HOT_WATER)
+                and self.recorder.run is None)
+
+    def _mode_request(self, mode: Optional[str]) -> None:
+        self.link.hold = self.modes.other_client
+        if mode:
+            self._spawn(self.link.request(mode))
+        if self.modes.take_changed() and self.mqtt and self._last_live:
+            self.mqtt.publish_live(self._last_live | self._mode_values())
+
     # --- link events -----------------------------------------------------
 
     def _on_link(self, up: bool, t: float, offline_since: Optional[float]) -> None:
@@ -118,6 +146,7 @@ class Bridge:
             log.info("machine reachable" + (f" after {t - offline_since:.0f} s offline"
                                             if offline_since else ""))
             self.reporter.link_up(t, offline_since)
+            self.modes.link_up(t)
             if self.mqtt:
                 self.mqtt.publish_machine(True)
             return
@@ -126,28 +155,48 @@ class Bridge:
         if run:
             self._finished(run)
         self.tracker.link_down()
+        self.modes.link_down()
+        self.link.hold = False
+        self._last_live = None
         if self.mqtt:
             self.mqtt.publish_machine(False)
             self.mqtt.publish_live({"state": OFFLINE})
         self._last_state = OFFLINE
 
+    def _on_display(self, d: Display, t: float) -> None:
+        self._mode_request(self.modes.display(d, t))
+        if self.modes.other_client and d.main:
+            # another client holds the module in display mode: use what the display
+            # shows (no shot logging, no per-minute average)
+            self._process(_frame_from_display(d), t, record=False)
+
+    def _on_foreign(self, reason: str, t: float) -> None:
+        self.modes.foreign(reason, t)
+        self._mode_request(None)
+
     def _on_frame(self, f: Frame, t: float) -> None:
+        self._process(f, t)
+
+    def _process(self, f: Frame, t: float, record: bool = True) -> None:
         change = self.tracker.update(f, t)
         if change:
             log.info("power mode %s -> %s", change[0] or "unknown", change[1])
             self.reporter.mode_change(change[0], change[1], t)
         if self.reporter.due(self.tracker.mode):
             self._spawn(self._send_report())
-        run = self.recorder.update(f, t)
-        if run:
-            self._finished(run)
+        if record:
+            run = self.recorder.update(f, t)
+            if run:
+                self._finished(run)
         state = self.tracker.state
         if state != self._last_state:
             log.info("state %s", state)
+        self._last_live = self._live(f)
         if self.mqtt and (state != self._last_state or state == BREWING
+                          or self.modes.take_changed()
                           or t - self._last_publish >= self.cfg.mqtt.publish_interval):
             self._last_publish = t
-            self.mqtt.publish_live(self._live(f))
+            self.mqtt.publish_live(self._last_live | self._mode_values())
         self._last_state = state
 
     def _live(self, f: Frame) -> dict:
@@ -164,11 +213,20 @@ class Bridge:
             values[key] = getattr(f, key)
         return values
 
+    def _mode_values(self) -> dict:
+        alerts = self.modes.alerts
+        return {"alerts": None if alerts is None else list(alerts),
+                "alert": None if alerts is None else (", ".join(alerts) or "none"),
+                "problem": bool(alerts), "other_client": self.modes.other_client}
+
     async def _send_report(self) -> None:
-        # Requirement: MCcREPORT SP1, then MCr.
+        # Requirement: MCcREPORT SP1, then MCr. While another client holds the module
+        # in display mode the MCr is left out, so that client keeps working.
+        self.modes.cancel_poll()
         if await self.link.send("MCcREPORT SP1"):
             await asyncio.sleep(0.5)
-            await self.link.send("MCr")
+            if not self.modes.other_client:
+                await self.link.request("mcr")
 
     # --- Home Assistant input -------------------------------------------
 
@@ -264,3 +322,14 @@ class Bridge:
     def _on_queue(self, count: int) -> None:
         if self.mqtt:
             self.mqtt.publish_pending(count)
+
+
+def _frame_from_display(d: Display) -> Frame:
+    """The values a main screen shows, as a Frame (all other fields unknown)."""
+    return Frame(
+        raw=d.raw, pump=d.shot, mode=None if d.standby else ("ECO" if d.eco else "PID"),
+        temperature=d.temperature, setpoint=d.setpoint, heater=d.heater,
+        pid_p=None, pid_i=None, pid_d=None, temperature_rate=None, heater_avg=None,
+        volume=None,   # the display shows the last shot's volume, not the live counter
+        pulses=None, flow_rate=None, target_pressure=None, pressure=d.pressure,
+        weight=d.weight, flow_weight=None, profile=d.profile)

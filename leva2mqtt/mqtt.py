@@ -48,6 +48,7 @@ SENSORS: dict[str, tuple] = {
     "pid_p": ("PID P term", None, None, "measurement", None, "diagnostic", False, 1),
     "pid_i": ("PID I term", None, None, "measurement", None, "diagnostic", False, 1),
     "pid_d": ("PID D term", None, None, "measurement", None, "diagnostic", False, 1),
+    "alert": ("Maintenance alerts", None, None, None, "mdi:alert-circle-outline", None, True, None),
 }
 
 # key: (name, device_class, icon)
@@ -58,7 +59,10 @@ BINARY_SENSORS: dict[str, tuple] = {
     "ready": ("Ready", None, "mdi:coffee-maker-check"),
     "steam": ("Steam mode", None, "mdi:kettle-steam"),
     "hot_water": ("Hot water", "running", "mdi:water-boiler"),
+    "problem": ("Maintenance alert", "problem", None),
+    "other_client": ("Other client connected", None, "mdi:cellphone-link"),
 }
+DIAGNOSTIC_BINARY = {"other_client"}
 
 BUTTONS: dict[str, tuple[str, str]] = {
     "wake": ("Wake", "mdi:power"),
@@ -232,6 +236,8 @@ class MqttOutput:
                 c["device_class"] = dc
             if icon:
                 c["icon"] = icon
+            if key in DIAGNOSTIC_BINARY:
+                c["entity_category"] = "diagnostic"
             self._config("binary_sensor", key, c)
         for key, (name, icon) in BUTTONS.items():
             self._config("button", key, {
