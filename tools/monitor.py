@@ -352,6 +352,10 @@ class Monitor:
             else:
                 why = "heater average not settled yet"
             rows.append(("status", "not ready", f"waiting: {why}", "33"))
+        grace = tr.ready_grace_until - now
+        if tr.ready and 0 < grace <= cfg.ready_grace:
+            rows.append(("recovery", f"{grace:.0f} s left",
+                         f"boiler may stay low after a shot / hot water ({cfg.ready_grace:g} s)"))
         if f is not None and f.temperature is not None and f.setpoint is not None:
             dev = f.temperature - f.setpoint
             rows.append(("boiler at temp.", f"{'yes' if tr.at_temperature else 'no'} ({dev:+.2f} K)",

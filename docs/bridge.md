@@ -64,7 +64,7 @@ Every key `<section>.<key>` can be set as environment variable `<SECTION>_<KEY>`
 | `shots.dose` | 18.0 | start value of the dose entity, g |
 | `shots.tail` | 5.0 | s after the pump stops that still count for the yield |
 | `bridge.report_min_offline` | 10 | see "Setpoint beep" |
-| `bridge.ready_band`, `ready_spread` | 0.5 K, 1.0 %-points | see "Ready" |
+| `bridge.ready_band`, `ready_spread`, `ready_grace` | 0.5 K, 1.0 %-points, 120 s | see "Ready" |
 | `bridge.steam_threshold` | 100 °C | |
 | `bridge.alert_interval` | 300 s | see "Maintenance alerts" |
 | `bridge.other_client_quiet` | 180 s | see "Other client" |
@@ -132,9 +132,11 @@ The module has no ready flag in `MCr`, and the firmware's `READY` is shown for o
   the boiler is at temperature **and** the last three averages lie within less than
   1.0 percentage point. An update that repeats the old value cannot be seen in the
   frame; an unchanged value is counted again after 65 s (**unverified**).
-- Ready is kept during a shot and lost when the boiler is more than 1.5 K below the
-  setpoint outside a shot (in practice after most shots, until the averages have
-  settled again), and in eco, standby and steam mode.
+- Ready is kept during a shot or hot water and for 120 s afterwards (recovery time,
+  decided by M. on 13.10.; `bridge.ready_grace`). It is lost when the boiler is still
+  more than 1.5 K below the setpoint after that, and in eco, standby and steam mode.
+  Whether 120 s is enough for the boiler to recover after a shot (it drops ~4.5 K):
+  **unverified**.
 - After a bridge start or a lost connection the bridge needs three updates (about
   2–3 min) before it can report ready, also on a machine that is long warm.
 

@@ -55,8 +55,10 @@ reproduced from `MCr` in two captures, so the bridge uses the same condition:
 | boiler at temperature | temperature within ±0.5 K of the setpoint | **seen** |
 | ready | boiler at temperature **and** the last three values of the per-minute heater average `f[73:78]` (it updates once a minute) lie within less than 1.0 percentage point. Evaluate at each update of the field. Reproduced the firmware's ready beep to within seconds twice (cold start ~8.3 min, warm power cycle ~5.7 min) | **unverified** (2 hits) |
 
-- Leaving "ready": temperature more than 1.5 K below the setpoint outside a shot, eco,
-  standby or steam mode. Whether the firmware re-arms its beep after a shot: unknown.
+- Leaving "ready": temperature more than 1.5 K below the setpoint, except during a pump
+  run or hot water and for 120 s afterwards (recovery; decision M., 13.10., duration
+  **unverified**); eco, standby or steam mode. Whether the firmware re-arms its beep
+  after a shot: unknown.
 - The firmware `READY` replaces the setpoint field for 10 s in display frames (**seen**);
   the bridge may log it when it happens to be in display mode, nothing depends on it.
 - Heater output `f[18:21]` in % (`100` at full power), per-minute average `f[73:78]`.

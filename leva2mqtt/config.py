@@ -61,6 +61,7 @@ class BridgeConfig:
     report_min_offline: float = 10.0
     ready_band: float = 0.5         # K around the setpoint for "at temperature" / ready
     ready_spread: float = 1.0       # %-points spread of the last three per-minute heater averages
+    ready_grace: float = 120.0      # s after a shot / hot water in which a boiler drop keeps ready
     steam_threshold: float = 100.0
     alert_interval: float = 300.0       # s between alert polls (MC@ for ~1 s) while idle
     other_client_quiet: float = 180.0   # s without activity of another client before MCr again

@@ -104,8 +104,31 @@ def test_ready_kept_during_shot_lost_after():
     assert tr.ready
     t = feed(tr, [frame(pump="*", temp=86.5, heater_avg=5.1)] * 40, t0=t)
     assert tr.ready and tr.state == BREWING
-    feed(tr, [frame(temp=86.5, heater_avg=5.1)], t0=t)
+    # recovery time: the boiler may stay low for ready_grace seconds after the shot
+    t = feed(tr, [frame(temp=86.5, heater_avg=5.1)] * int(tr.s.ready_grace / 0.25 - 4), t0=t)
+    assert tr.ready and tr.state == READY
+    feed(tr, [frame(temp=86.5, heater_avg=5.1)] * 8, t0=t)
     assert not tr.ready and tr.state == HEATING
+
+
+def test_ready_survives_recovered_shot():
+    tr = Tracker()
+    t = feed_minutes(tr, [(90.0, 5.0), (90.1, 5.2), (90.0, 5.1)])
+    t = feed(tr, [frame(pump="*", temp=86.0, heater_avg=5.1)] * 80, t0=t)
+    t = feed(tr, [frame(temp=87.5 + i * 0.01, heater_avg=5.1) for i in range(300)], t0=t)
+    feed(tr, [frame(temp=89.8, heater_avg=5.1)] * 400, t0=t)
+    assert tr.ready and tr.state == READY
+
+
+def test_ready_kept_during_hot_water():
+    tr = Tracker()
+    t = feed_minutes(tr, [(90.0, 5.0), (90.1, 5.2), (90.0, 5.1)], t0=0.0)
+    t = feed(tr, [frame(temp=90.0, volume=10, heater_avg=5.1)] * 4, t0=t)
+    t = feed(tr, [frame(temp=90.0 - i * 0.1, volume=10 + i * 2, heater_avg=5.1)
+                  for i in range(60)], t0=t)
+    assert tr.state == HOT_WATER and tr.ready
+    feed(tr, [frame(temp=84.0, volume=130, heater_avg=5.1)] * 200, t0=t)
+    assert tr.ready
 
 
 def test_ready_reset_by_standby_and_steam():

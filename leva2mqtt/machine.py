@@ -39,6 +39,8 @@ class Settings:
     ready_spread: float = 1.0       # %-points: last three per-minute heater averages (2 hits)
     ready_samples: int = 3
     avg_period: float = 60.0        # s between updates of the per-minute average (seen)
+    ready_grace: float = 120.0      # s after a pump run / hot water in which a boiler drop does
+                                    # not end ready (recovery after a shot; decided by M., unverified)
     steam_on: float = 100.0         # °C boiler with setpoint < steam_on = steam mode (threshold unverified)
     steam_off: float = 99.0         # °C: steam mode left (unverified)
     hot_water_min_ml: int = 5       # flow meter increase without '*' (one capture)
@@ -59,6 +61,7 @@ class Tracker:
         self.at_temperature = False
         self._avgs: list[float] = []          # last per-minute heater averages, oldest first
         self._avg_t: Optional[float] = None   # time of the last update of the field
+        self._grace_until = 0.0               # ready survives a boiler drop until then
         self._pump_end: Optional[float] = None
         self._pump_on = False
         self._vol_base: Optional[int] = None
@@ -165,6 +168,11 @@ class Tracker:
         return round(max(self._avgs) - min(self._avgs), 2)
 
     @property
+    def ready_grace_until(self) -> float:
+        """Until then a boiler drop does not end ready (after a pump run / hot water)."""
+        return self._grace_until
+
+    @property
     def heater_avg_updated(self) -> Optional[float]:
         """Time of the last (seen or assumed) update of the per-minute average."""
         return self._avg_t
@@ -206,10 +214,14 @@ class Tracker:
         if self.steam:
             self._reset_ready()
             return
+        busy = self._pump_on or self.hot_water
+        if busy:
+            self._grace_until = t + self.s.ready_grace
         if self.ready:
-            # lost when the boiler falls too far outside a shot (eco, standby and
-            # steam reset it elsewhere)
-            if not self._pump_on and temp < sp - self.s.heating_margin:
+            # lost when the boiler is still too far below the setpoint ready_grace
+            # seconds after a pump run / hot water (eco, standby and steam reset it
+            # elsewhere)
+            if not busy and t >= self._grace_until and temp < sp - self.s.heating_margin:
                 self.ready = False
             return
         if (updated and self.at_temperature and len(self._avgs) == self.s.ready_samples
