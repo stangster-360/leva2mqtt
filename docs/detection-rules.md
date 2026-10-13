@@ -44,7 +44,8 @@ Transitions (the display text is not needed):
 
 ## 3. Heating and ready
 
-The bridge decides "ready" itself and does not depend on the firmware's `READY`
+**Decision (M., 13.10.):** the bridge provides its own ready logic and its own Home
+Assistant entity for it. It does not depend on the firmware's `READY`
 (shown for only 10 s, only in the display stream). The firmware's own decision could be
 reproduced from `MCr` in two captures, so the bridge uses the same condition:
 
@@ -106,11 +107,11 @@ at ~39 g for a 40 g target). **seen**
   `READY` appear only in display frames (`MC@`), which replace `MCr`. A second
   connection does not help (the mode is global, **seen**); switching modes costs
   0.1–0.6 s of data.
-  **Tentative decision (M., 12.10.):** `MCr` stays the data source. The bridge derives
+  **Decision (M., 13.10.):** `MCr` stays the data source. The bridge derives
   "ready" itself and, only while idle (no `*`, no steam), switches to `MC@` for about a
   second every few minutes to read maintenance alerts, then back to `MCr`. If a shot
   starts in that second (display shows the shot screen), it switches back at once; at
-  most ~0.6 s of pre-infusion is lost, about 1 in 300 shots. Final after the cold-start
-  repeat.
+  most ~0.6 s of pre-infusion is lost, about 1 in 300 shots. Interval: every 5 min for
+  about 1 s.
 - Backflush: not captured (scenario 7).
 - Idle pressure is thermal expansion and no pump signal.

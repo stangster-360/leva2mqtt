@@ -211,9 +211,11 @@ aligned once the cold-start captures are evaluated:
   Leva Companion app connected this would break the app's display; detection-rules.md
   proposes to expose "other client active" and keep reading the display frames instead.
 
-- Maintenance alerts (`BACKFL`, `DSCALE`, …) and `READY` only exist in display frames.
-  Planned: switch to `MC@` for about a second every few minutes while idle. Decided
-  after the warm-up test.
+- Maintenance alerts (`BACKFL`, `DSCALE`, …) only exist in display frames. Decided
+  (13.10.): while idle (no `*`, no steam), switch to `MC@` for about 1 s every 5 min,
+  then back to `MCr`; on a shot screen switch back at once.
+- Ready: decided (13.10.) that the bridge exposes its own ready entity; port the rule
+  from detection-rules.md (per-minute heater average).
 - Multi-arch images (amd64 / arm64 / armv7) and the Home Assistant add-on.
 - Backflush detection (no capture yet).
 
