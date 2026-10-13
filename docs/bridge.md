@@ -57,6 +57,7 @@ Every key `<section>.<key>` can be set as environment variable `<SECTION>_<KEY>`
 | `mqtt.publish_interval` | 1.0 | s between live updates while idle; every frame (4/s) while brewing |
 | `visualizer.username`, `password` | – | Visualizer account (Basic Auth) |
 | `visualizer.upload` | true | start value of the switch entity |
+| `visualizer.coffee_bags_refresh` | 1800 | s between reloads of the coffee bag list; 0 = no coffee bag entity |
 | `telegram.token`, `chat_id` | – | |
 | `telegram.notify` | true | start value of the switch entity |
 | `shots.directory` | /data/shots | queue (`pending/`) and archive; empty = queue in memory only, lost on restart |
@@ -211,7 +212,8 @@ outage of the internet or of Visualizer cannot lose it:
 1. The summary goes to MQTT at once (`event`, `last_shot`).
 2. The shot is written to `shots/pending/<date>_<time>_shot.json` **before** anything
    is sent (written to a temp file, then renamed).
-3. Visualizer upload, then the Telegram message. The targets are fixed when the shot
+3. Visualizer upload, then the coffee bag link (only if a bag was selected), then the
+   Telegram message. The targets are fixed when the shot
    is taken (configured and switched on at that moment). The message does not wait
    for a failed upload; it then goes out without the link.
 4. A failed delivery is retried after 1, 5, 15, 30 and then every 60 minutes, and at
@@ -235,6 +237,28 @@ also be uploaded by hand. The key `leva2mqtt` holds the summary and the delivery
 Known gap: if the bridge dies after Visualizer accepted a shot but before the state
 was saved, the shot is uploaded a second time on the next start.
 
+## Coffee bags (Visualizer Premium)
+
+With Premium and coffee management switched on in the Visualizer settings, the bridge
+offers the active (not archived) coffee bags as the select entity **Coffee bag**. The
+selection is stored with each shot when it is taken; after the upload the bridge links
+the shot to the bag, and Visualizer fills roaster, coffee, roast date and roast level
+from the bag. The free-text **Bean** entity stays for accounts without coffee
+management; Visualizer's bag fields win when both are set.
+
+- The list is loaded at start, every `visualizer.coffee_bags_refresh` seconds and with
+  the button **Reload coffee bags**. On an error the last list stays.
+- No bags: no select entity. A selected bag that is archived or deleted is cleared.
+- Labels are `<coffee> – <roaster>`; when two bags look the same, the roast date
+  (or a short id) is added.
+- The link is its own queue step: it waits for the upload, is retried like the upload,
+  and is dropped if the upload failed for good or Visualizer rejects it (404 / 422, or
+  coffee management off). The upload itself is not repeated for a failed link.
+
+API (`GET /api/roasters`, `GET /api/coffee_bags`, `PATCH /api/shots/<id>` with
+`coffee_bag_id`) as read from Visualizer's public source on 13.10.2026; **unverified**
+against the live service until the first linked shot.
+
 ## MQTT topics
 
 `<prefix>/<id>/…`:
@@ -247,7 +271,7 @@ was saved, the shot is uploaded a second time on the next start.
 | `last_shot` | last shot as JSON, retained; gets `visualizer_url` after the upload |
 | `event` | every finished run (`shot`, `flush`, `tank_empty`); `shot_uploaded` with the Visualizer URL |
 | `pending` | number of shots waiting for delivery, retained |
-| `command/<wake\|eco\|standby\|report>` | payload `PRESS` |
+| `command/<wake\|eco\|standby\|report\|refresh_coffee_bags>` | payload `PRESS` |
 | `settings/<key>` / `settings/<key>/set` | retained runtime settings, restored after a restart |
 
 ## Home Assistant entities
@@ -266,8 +290,9 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
 - Binary sensors: pump, heating up, boiler at temperature, ready, steam mode, hot water,
   maintenance alert (problem), other client connected (diagnostic)
 - Buttons: wake (`MCa`), eco (`MCe`), standby (`MCE`), beep setpoint
-- Settings: dose (number), bean, grinder setting (text), Visualizer upload and
-  Telegram message (switches, only when configured)
+- Settings: dose (number), bean, grinder setting (text), coffee bag (select, only with
+  bags on Visualizer) and a button to reload them, Visualizer upload and Telegram
+  message (switches, only when configured)
 
 ## Not done yet
 

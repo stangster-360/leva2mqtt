@@ -24,6 +24,7 @@ visualizer:                 # leave empty to disable the upload
   username: ""              # Visualizer.coffee account e-mail
   password: ""
   upload: true              # start value of the "Upload shots to Visualizer" switch
+  coffee_bags_refresh: 1800 # s between reloads of the coffee bag list (Premium); 0 = off
 
 telegram:                   # leave empty to disable messages
   token: ""                 # bot token from @BotFather

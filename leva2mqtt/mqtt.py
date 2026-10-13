@@ -9,7 +9,7 @@ Topics (base = <topic_prefix>/<machine id>):
   base/event                  every finished pump run as JSON (shot, flush, …),
                               and shot_uploaded with the Visualizer URL
   base/pending                number of shots waiting for upload / message, retained
-  base/command/<button>       PRESS: wake, eco, standby, report
+  base/command/<button>       PRESS: wake, eco, standby, report, refresh_coffee_bags
   base/settings/<key>         runtime settings, retained (restored on start)
   base/settings/<key>/set     set a runtime setting
 
@@ -79,6 +79,7 @@ BUTTONS: dict[str, tuple[str, str]] = {
     "standby": ("Standby", "mdi:power-sleep"),
     "report": ("Beep setpoint", "mdi:volume-high"),
 }
+NO_BAG = "None"     # select option: shot not linked to a coffee bag
 
 
 class MqttOutput:
@@ -106,6 +107,8 @@ class MqttOutput:
         self._announced: set[str] = set()
         self._machine_online = False
         self._pending = 0
+        self._bag_options: Optional[list[str]] = None   # None = no coffee bag entity
+        self._bag_announced = False
         self._connected = False
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
                                   client_id=f"leva2mqtt-{m.id}", clean_session=True)
@@ -164,7 +167,8 @@ class MqttOutput:
         rest = topic[len(self.base) + 1:]
         parts = rest.split("/")
         if parts[0] == "command" and len(parts) == 2 and not retained:
-            if parts[1] in BUTTONS:
+            if parts[1] in BUTTONS or (parts[1] == "refresh_coffee_bags"
+                                       and self.cfg.visualizer_enabled):
                 self.on_command(parts[1])
         elif parts[0] == "settings" and len(parts) == 2:
             if retained:   # restore after a restart
@@ -211,6 +215,12 @@ class MqttOutput:
     def update_record(self, record: dict) -> None:
         """Republish the last shot after the Visualizer URL is known."""
         self._pub(f"{self.base}/last_shot", record, retain=True, qos=1)
+
+    def set_coffee_bags(self, labels: Optional[list[str]]) -> None:
+        """Options for the coffee bag select; None removes the entity."""
+        self._bag_options = None if labels is None else [NO_BAG, *labels]
+        if self._connected:
+            self._announce_bags()
 
     # --- discovery -------------------------------------------------------
 
@@ -307,6 +317,12 @@ class MqttOutput:
                 "name": name, "icon": icon, "max": 100, "entity_category": "config",
                 "state_topic": f"{s}/{key}", "command_topic": f"{s}/{key}/set",
                 **self._availability(machine=False)})
+        if self.cfg.visualizer_enabled:
+            self._config("button", "refresh_coffee_bags", {
+                "name": "Reload coffee bags", "icon": "mdi:refresh", "entity_category": "config",
+                "command_topic": f"{self.base}/command/refresh_coffee_bags",
+                "payload_press": "PRESS", **self._availability(machine=False)})
+            self._announce_bags()
         switches = []
         if self.cfg.visualizer_enabled:
             switches.append(("visualizer_upload", "Upload shots to Visualizer", "mdi:cloud-upload"))
@@ -317,6 +333,22 @@ class MqttOutput:
                 "name": name, "icon": icon, "entity_category": "config",
                 "state_topic": f"{s}/{key}", "command_topic": f"{s}/{key}/set",
                 "payload_on": "ON", "payload_off": "OFF", **self._availability(machine=False)})
+
+    def _announce_bags(self) -> None:
+        key = "coffee_bag"
+        if self._bag_options is None:
+            if self._bag_announced:   # remove the entity (e.g. coffee management off)
+                self._pub(f"{self.disc}/select/{self.uid}/{key}/config", "", retain=True, qos=1)
+                self._bag_announced = False
+            return
+        s = f"{self.base}/settings"
+        self._config("select", key, {
+            "name": "Coffee bag", "icon": "mdi:sack", "entity_category": "config",
+            "options": self._bag_options,
+            "state_topic": f"{s}/{key}", "command_topic": f"{s}/{key}/set",
+            "value_template": "{{ value if value else '%s' }}" % NO_BAG,
+            **self._availability(machine=False)})
+        self._bag_announced = True
 
 
 def parse_setting(key: str, payload: str) -> Optional[Any]:
@@ -329,6 +361,9 @@ def parse_setting(key: str, payload: str) -> Optional[Any]:
         return v if 0 < v <= 100 else None
     if key in ("bean", "grinder_setting"):
         return payload.strip()[:100]
+    if key == "coffee_bag":
+        p = payload.strip()[:255]
+        return "" if p == NO_BAG else p
     if key in ("visualizer_upload", "telegram_notify"):
         p = payload.strip().upper()
         return True if p in ("ON", "TRUE", "1") else False if p in ("OFF", "FALSE", "0") else None

@@ -39,6 +39,7 @@ class VisualizerConfig:
     username: str = ""              # empty = upload disabled
     password: str = ""
     upload: bool = True             # default for the runtime switch
+    coffee_bags_refresh: float = 1800.0  # s between reloads of the coffee bag list; 0 = off
 
 
 @dataclass

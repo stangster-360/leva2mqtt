@@ -15,7 +15,7 @@ from .link import Link
 from .machine import (BREWING, HOT_WATER, MODE_AWAKE, MODE_ECO, OFFLINE, STEAM, Settings,
                       Tracker, WakeReporter)
 from .modes import ModeController
-from .outbox import Entry, Outbox
+from .outbox import DONE, PENDING, Entry, Outbox, PermanentError
 from .shots import SHOT, Run, ShotRecorder
 
 log = logging.getLogger(__name__)
@@ -38,6 +38,8 @@ class Bridge:
             "dose": cfg.shots.dose, "bean": "", "grinder_setting": ""}
         if cfg.visualizer_enabled:
             self.settings["visualizer_upload"] = cfg.visualizer.upload
+            self.settings["coffee_bag"] = ""
+        self._bags: Optional[dict[str, str]] = None     # label -> id, None = not loaded
         if cfg.telegram_enabled:
             self.settings["telegram_notify"] = cfg.telegram.notify
         self.modes = ModeController(interval=b.alert_interval, quiet=b.other_client_quiet)
@@ -68,6 +70,9 @@ class Bridge:
                 pass
         health = self._spawn(self._health())
         ticker = self._spawn(self._ticker())
+        bags = None
+        if self.cfg.visualizer_enabled and self.cfg.visualizer.coffee_bags_refresh > 0:
+            bags = self._spawn(self._bag_loop())
         self.outbox.load()
         outbox = loop.create_task(self.outbox.run())
         log.info("leva2mqtt started: machine %s:%s, outputs: %s", self.cfg.machine.host,
@@ -77,7 +82,9 @@ class Bridge:
         finally:
             health.cancel()
             ticker.cancel()
-            rest = self._tasks - {health, ticker}
+            if bags:
+                bags.cancel()
+            rest = self._tasks - {health, ticker, bags}
             if rest:
                 await asyncio.wait(rest, timeout=10)
             # let a running upload finish; unfinished shots stay in pending/
@@ -240,6 +247,9 @@ class Bridge:
         if cmd is None:
             return
         log.info("button %s", name)
+        if name == "refresh_coffee_bags":
+            self._spawn(self._load_bags())
+            return
         if name == "report":
             self.reporter.manual_report(time.time())
             self._spawn(self._send_report())
@@ -251,6 +261,8 @@ class Bridge:
         if key not in self.settings:
             return
         value = parse_setting(key, payload)
+        if key == "coffee_bag" and value and self._bags is not None and value not in self._bags:
+            value = None   # unknown bag; a restored value before the first load is kept
         if value is None:
             log.warning("ignoring invalid value for %s: %r", key, payload)
         elif value != self.settings[key]:
@@ -272,6 +284,10 @@ class Bridge:
             for key in ("bean", "grinder_setting"):
                 if self.settings.get(key):
                     rec[key] = self.settings[key]
+            label = self.settings.get("coffee_bag")
+            if label and self._bags and label in self._bags:
+                rec["coffee_bag"] = label
+                rec["coffee_bag_id"] = self._bags[label]
         return rec
 
     def _finished(self, run: Run) -> None:
@@ -286,6 +302,8 @@ class Bridge:
         targets = []
         if self.cfg.visualizer_enabled and self.settings.get("visualizer_upload"):
             targets.append("visualizer")
+            if rec.get("coffee_bag_id"):
+                targets.append("coffee_bag")
         if self.cfg.telegram_enabled and self.settings.get("telegram_notify"):
             targets.append("telegram")
         name = time.strftime("%Y-%m-%d_%H%M%S", time.localtime(run.start)) + "_shot.json"
@@ -297,14 +315,56 @@ class Bridge:
         senders = {}
         if self.cfg.visualizer_enabled:
             senders["visualizer"] = self._send_visualizer
+            senders["coffee_bag"] = self._send_coffee_bag
         if self.cfg.telegram_enabled:
             senders["telegram"] = self._send_telegram
         return senders
 
     async def _send_visualizer(self, e: Entry) -> dict:
-        url = await asyncio.to_thread(visualizer.upload, e.shot, self.cfg.visualizer.username,
-                                      self.cfg.visualizer.password)
-        return {"url": url}
+        return await asyncio.to_thread(visualizer.upload, e.shot, self.cfg.visualizer.username,
+                                       self.cfg.visualizer.password)
+
+    async def _send_coffee_bag(self, e: Entry) -> dict:
+        up = e.delivery.get("visualizer", {})
+        if up.get("state") == PENDING:
+            raise RuntimeError("waiting for the upload")
+        if up.get("state") != DONE or not up.get("id"):
+            raise PermanentError("shot was not uploaded")
+        await asyncio.to_thread(visualizer.link_coffee_bag, up["id"], e.record["coffee_bag_id"],
+                                self.cfg.visualizer.username, self.cfg.visualizer.password)
+        return {}
+
+    # --- coffee bags -----------------------------------------------------
+
+    async def _bag_loop(self) -> None:
+        while True:
+            await self._load_bags()
+            await asyncio.sleep(self.cfg.visualizer.coffee_bags_refresh)
+
+    async def _load_bags(self) -> None:
+        """Reload the active coffee bags. On an error the last list stays; an empty list
+        (no bags, coffee management not used) removes the select entity."""
+        try:
+            bags = await asyncio.to_thread(visualizer.coffee_bags, self.cfg.visualizer.username,
+                                           self.cfg.visualizer.password)
+        except Exception as err:
+            log.warning("cannot load coffee bags from Visualizer: %s", err)
+            return
+        self.apply_bags(bags)
+
+    def apply_bags(self, bags: list[dict]) -> None:
+        old = self._bags
+        self._bags = {b["label"]: b["id"] for b in bags}
+        if old is None or set(old) != set(self._bags):
+            log.info("%d active coffee bag(s) on Visualizer", len(self._bags))
+        selected = self.settings.get("coffee_bag")
+        if selected and selected not in self._bags:
+            log.warning("coffee bag %r is not active any more, selection cleared", selected)
+            self.settings["coffee_bag"] = ""
+            if self.mqtt:
+                self.mqtt.publish_setting("coffee_bag", "")
+        if self.mqtt:
+            self.mqtt.set_coffee_bags(list(self._bags) or None)
 
     async def _send_telegram(self, e: Entry) -> dict:
         url = e.delivery.get("visualizer", {}).get("url")

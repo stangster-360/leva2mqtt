@@ -2,7 +2,7 @@
 
 Every shot is written to `<directory>/pending/` before anything is sent, so a crash, a
 restart or a network outage cannot lose it. Each configured target (Visualizer upload,
-Telegram message) is then delivered; failed deliveries are retried with a growing
+coffee bag link, Telegram message) is then delivered; failed deliveries are retried with a growing
 delay, also after a restart of the bridge.
 
 When nothing is pending any more:
@@ -28,7 +28,8 @@ from typing import Awaitable, Callable, Optional
 log = logging.getLogger(__name__)
 
 PENDING, DONE, FAILED, EXPIRED, SKIPPED = "pending", "done", "failed", "expired", "skipped"
-TARGETS = ("visualizer", "telegram")          # processing order: the message gets the link
+# processing order: the bag link needs the uploaded shot, the message gets the link
+TARGETS = ("visualizer", "coffee_bag", "telegram")
 BACKOFF = (60, 300, 900, 1800, 3600)          # s after the 1st, 2nd, … failed pass
 TELEGRAM_MAX_AGE = 3600.0                     # an older shot message is dropped, not sent
 POLL_S = 15.0

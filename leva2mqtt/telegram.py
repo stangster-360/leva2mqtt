@@ -44,9 +44,10 @@ def format_shot(record: dict, machine: str, url: Optional[str] = None,
         lines.append(f"first drop after {record['first_drop']:.0f} s")
     if record.get("temperature_start") is not None:
         lines.append(f"boiler {record['temperature_start']:.1f} °C at start")
-    if record.get("bean"):
-        lines.append(record["bean"] + (f", grinder {record['grinder_setting']}"
-                                       if record.get("grinder_setting") else ""))
+    bean = record.get("coffee_bag") or record.get("bean")
+    if bean:
+        lines.append(bean + (f", grinder {record['grinder_setting']}"
+                             if record.get("grinder_setting") else ""))
     if url:
         lines.append(url)
     return "\n".join(lines)
