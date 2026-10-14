@@ -111,6 +111,17 @@ Placeholder: `<ito-ip>` for the module's address.
 - The report mode is **global for the module**, not per connection: client A had sent
   `MCr`, client B connected and sent `MC@`, and from then on **both** received display
   frames. Two connections cannot carry `MCr` and `MC@` at the same time. **seen**
+- The number of TCP connections is limited by the ESP SDK, "four, I think, from memory".
+  Connections that are not closed cleanly (new connections opened while old ones are
+  left behind) occupy the slots until a timeout; until then new connections may fail.
+  leva!'s menu item "Restart Wifi" frees them. **dev** (forum reply, 14.10.2026)
+  For clients: always close the old socket before reconnecting, never keep spare
+  connections open, and treat repeated connect failures while the module answers ping
+  as "slots full" rather than "offline" (**unverified**).
+- After a WLAN factory reset the module's access point "ito module" uses its default
+  password again. The AP is only open if its password was deleted explicitly. Operating
+  systems cache the AP password; after a reset the stored network has to be forgotten
+  on the client. **dev**
 
 ## Commands
 
@@ -210,6 +221,12 @@ Captured during a 7 s flush (`shotscreen`, 13.10., control characters shown as `
 - Undefined values (sensor not installed, not active) are `?`. Skip them. **seen**, **dev**
 - The developer describes field positions, lengths and types in an XML file that is part
   of the licensed firmware download. It is not included here. **dev**
+  Official documentation (developer, 14.10.2026): the XML file shipped with leva! (read
+  with the chapter "XML Syntax" of the ito manual), `Virtual LCD\protocol.pdf` on the
+  ito DVD (display frames), the leva! manual's "Appendix: Serial menu", and the ito
+  manual's chapter "Creating Status Monitor-compatible firmware". Positions in this file
+  come from our captures and should be checked against these sources; none of them is
+  copied into the repository.
 - In standby the frame is almost entirely `?`. **seen**
   Set characters in all 63 standby frames of one capture: position 3 = `1`, positions
   163–167 = `001.0` (not decoded), and the tail `~ 59`. Position 2 (`*`/`-`) and
