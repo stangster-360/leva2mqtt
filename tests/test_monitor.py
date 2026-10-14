@@ -32,7 +32,8 @@ def test_pid_constants_and_pressure_range():
     f = frame()
     f = f[:53] + "009.4058.0014.5" + f[68:]
     f = f[:202] + "08.1008.45" + f[212:]
-    p = parse(f)
+    from framegen import _sealed
+    p = parse(_sealed(list(f)))
     assert (p.pid_kc, p.pid_ti, p.pid_td) == (9.4, 58.0, 14.5)
     assert (p.pressure_min, p.pressure_max) == (8.1, 8.45)
 

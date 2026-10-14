@@ -212,3 +212,12 @@ def test_real_frame_heater_at_full_power():
     raw = raw[:288].ljust(288, "?") + "}"
     f = parse(raw)
     assert f.setpoint == 90.0 and f.heater == 100 and f.temperature == 20.8
+
+
+def test_checksum_from_captures():
+    from leva2mqtt.frame import checksum_ok
+    # standby frame as captured, and the same frame with lost characters (seen once)
+    ok = "{ ?1" + "?" * 159 + "001.0" + "?" * 116 + "~ 59}"
+    assert len(ok) == 289 and checksum_ok(ok) and parse(ok) is not None
+    broken = "{ ?1" + "?" * 88 + "01.0" + "?" * 112 + "~ 59}"
+    assert not checksum_ok(broken) and parse(broken) is None

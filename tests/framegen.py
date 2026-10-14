@@ -7,6 +7,14 @@ def _put(buf, pos, text):
     buf[pos:pos + len(text)] = list(text)
 
 
+def _sealed(buf):
+    """Fill in the `~ XX` checksum (two's complement of the 8-bit sum before `~`)."""
+    text = "".join(buf)
+    i = text.rindex("~")
+    cs = (-sum(text[:i].encode("latin-1"))) & 0xFF
+    return text[:i] + f"~ {cs:02X}" + text[i + 4:]
+
+
 def frame(pump="-", mode="PID", temp=90.0, setpoint=90.0, heater=10, volume=0, pulses=0,
           rate=0, target=None, pressure=0.5, weight=None, flow_weight=None,
           profile="GEN.LEVER", standby=False, heater_avg=10.0):
@@ -16,7 +24,7 @@ def frame(pump="-", mode="PID", temp=90.0, setpoint=90.0, heater=10, volume=0, p
     if standby:
         buf[3] = "1"
         _put(buf, 163, "001.0")
-        return "".join(buf)
+        return _sealed(buf)
     buf[2] = pump
     buf[3] = "1"
     _put(buf, 4, mode)
@@ -35,4 +43,4 @@ def frame(pump="-", mode="PID", temp=90.0, setpoint=90.0, heater=10, volume=0, p
     if flow_weight is not None:
         _put(buf, 231, f"{flow_weight:05.2f}")
     _put(buf, 245, profile.ljust(21))
-    return "".join(buf)
+    return _sealed(buf)

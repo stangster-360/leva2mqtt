@@ -111,7 +111,9 @@ Placeholder: `<ito-ip>` for the module's address.
 - The report mode is **global for the module**, not per connection: client A had sent
   `MCr`, client B connected and sent `MC@`, and from then on **both** received display
   frames. Two connections cannot carry `MCr` and `MC@` at the same time. **seen**
-- The number of TCP connections is limited by the ESP SDK, "four, I think, from memory".
+- The number of TCP connections is limited: **four connections to port 23, each with a
+  5-minute inactivity timeout** (ito Hardware Reference Manual, chapter WLAN – **dev**;
+  the developer said "four, I think, from memory" in the forum).
   Connections that are not closed cleanly (new connections opened while old ones are
   left behind) occupy the slots until a timeout; until then new connections may fail.
   leva!'s menu item "Restart Wifi" frees them. **dev** (forum reply, 14.10.2026)
@@ -122,6 +124,30 @@ Placeholder: `<ito-ip>` for the module's address.
   password again. The AP is only open if its password was deleted explicitly. Operating
   systems cache the AP password; after a reset the stored network has to be forgotten
   on the client. **dev**
+
+## Module and WLAN (ito Hardware Reference Manual, **dev**)
+
+- The ito carries two chips: an ESP8266 (WLAN, firmware based on esp-link) and the
+  ATMega1284 running leva!. The ESP bridges port 23 to the ATMega's serial port at
+  115200 baud, "like a cable". Port 2323 is the flashing port: the first character sent
+  there resets the ATMega into its bootloader – never connect to it.
+- WLAN modes: AP (factory: SSID `ito Module`, default password in the manual, web
+  interface at 192.168.4.1), STA (in the home network, IP from DHCP), STA+AP (temporary,
+  slow and unreliable while it scans). After power-on the ito falls back to STA+AP if it
+  cannot reach the configured router; it does **not** fall back when the router vanishes
+  during operation (power-cycle needed).
+- WLAN configuration reset: power off, hold the encoder, power on, keep holding through
+  slow and fast beeping until the beeping stops, release – the ESP restarts in AP mode
+  with factory settings. Clients cache the AP password and must "forget" the network.
+- The red LED on the PCB shows the WLAN state (AP, STA+AP, STA without IP, STA with IP);
+  a module that connects for a few seconds and drops again is in a reset loop – the
+  manual suggests power-cycling the router, then a WLAN configuration reset.
+- Seen on 14.10.2026: the module dropped out of the network (no ARP answer, display and
+  machine fine); after a WLAN reset the AP reappeared. Cause **unknown**.
+- Status Monitor conventions the leva! output follows: `?` → reply `XML=<name>`; `MCr`
+  starts the `{…}` report at the cycle time of the XML file; the third character `*`
+  marks an event; `MCR` resends the last packet; values without a reading are sent as
+  `?…?`.
 
 ## Commands
 
@@ -270,7 +296,7 @@ Captured during a 7 s flush (`shotscreen`, 13.10., control characters shown as `
 | 226–230 | `042.1` | Scale weight, g. Matches the scale display (final 102.3 g in the frame, 102.3 g read off the scale). Reads `000.0` after the cup is removed. | **seen** |
 | 231–235 | `03.12` | Flow by weight, g/s | **seen** |
 | near end | `GEN.LEVER` | Active profile name | **seen** |
-| last 2 before `}` | `A9` | Probably a checksum – not a plain byte sum or XOR | **unverified** |
+| last 2 before `}` | `A9` | Checksum: two's complement of the 8-bit sum of all characters before `~` (sum + checksum ≡ 0 mod 256). The ito manual calls it the "binary complement" of the sum; the two's complement is what matches: 21 172 of 21 173 captured frames, the one miss was a 215-character line with lost characters. The parser drops frames with a wrong checksum. | **seen**, **dev** |
 
 Not decoded yet: 39–44, 212–225 (only during a profile), the `OFF` marker at 78–80.
 

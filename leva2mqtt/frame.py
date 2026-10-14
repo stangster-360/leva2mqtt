@@ -81,10 +81,27 @@ def _text(s: str) -> Optional[str]:
 _warned_len: set[int] = set()
 
 
+def checksum_ok(f: str) -> bool:
+    """`~ XX` before `}` is the two's complement of the 8-bit sum of all characters before
+    `~` (ito manual, "Creating compatible firmware"; matched 21 172 of 21 173 captured
+    frames, the one miss was a line with lost characters). Frames without `~` pass."""
+    i = f.rfind("~")
+    if i < 0:
+        return True
+    try:
+        want = int(f[i + 1:].strip(" }"), 16)
+    except ValueError:
+        return False
+    return (-sum(f[:i].encode("latin-1", "replace"))) & 0xFF == want
+
+
 def parse(line: str) -> Optional[Frame]:
     """Decode one `{…}` line. Returns None if it is not an `MCr` frame."""
     f = line.rstrip("\r\n")
     if not (f.startswith("{") and f.endswith("}")):
+        return None
+    if not checksum_ok(f):
+        log.debug("MCr frame with bad checksum dropped")
         return None
     if len(f) != FRAME_LEN and len(f) not in _warned_len:
         # Other firmware versions may use another layout. Fields are still parsed,
