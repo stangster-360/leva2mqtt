@@ -130,9 +130,16 @@ class Capture:
             try:
                 s = socket.create_connection((self.host, PORT), timeout=3)
             except OSError as e:
+                reason = getattr(e, "strerror", None) or e.__class__.__name__
                 if was_offline_since is None:
                     was_offline_since = time.time()
-                    self.event(f"offline ({e.__class__.__name__}), retrying every {RETRY_S} s")
+                    self.event(f"machine not reachable ({reason}), retrying every {RETRY_S} s "
+                               f"- expected while it is switched off")
+                    last_status = time.time()
+                elif time.time() - last_status >= 10:
+                    last_status = time.time()
+                    print(f"{datetime.now():%H:%M:%S} still waiting for the machine "
+                          f"({time.time() - was_offline_since:.0f} s, {reason})")
                 self.stop.wait(RETRY_S)
                 continue
             s.settimeout(1.0)
