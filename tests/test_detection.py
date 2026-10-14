@@ -221,3 +221,31 @@ def test_checksum_from_captures():
     assert len(ok) == 289 and checksum_ok(ok) and parse(ok) is not None
     broken = "{ ?1" + "?" * 88 + "01.0" + "?" * 112 + "~ 59}"
     assert not checksum_ok(broken) and parse(broken) is None
+
+
+SHOT_FRAME = ("{ *1PID089.40090.00270005.80004.00017.00000.0-00.1250009.4058.0014.5020.0003.4OFF"
+              + "?" * 71 + "06100129250001.0" + "?" * 24
+              + "08.3208.2207.9208.60020052-008-022011.202.37     9BARGEN.LEVER"
+              + " " * 18 + "GEN.LEVER???~ EB}")
+
+
+def test_all_fields_of_a_captured_shot_frame():
+    # captured 2026-10-13 during a shot; field order as in the leva! Status Monitor XML
+    assert len(SHOT_FRAME) == 289
+    f = parse(SHOT_FRAME)
+    assert f.pump and f.mode == "PID" and f.temperature == 89.4 and f.setpoint == 90.0
+    assert (f.heater, f.pid_p, f.pid_i, f.pid_d, f.pid_ff) == (27, 5.8, 4.0, 17.0, 0.0)
+    assert (f.pid_kc, f.pid_ti, f.pid_td, f.pid_windup, f.heater_avg) == (9.4, 58.0, 14.5, 20.0, 3.4)
+    assert f.mode2 == "OFF" and f.temperature2 is None and f.temperature_pcb is None
+    assert (f.volume, f.pulses, f.flow_rate) == (61, 129, 250)
+    assert (f.target_pressure, f.pressure, f.pressure_min, f.pressure_max) == (8.32, 8.22, 7.92, 8.6)
+    assert (f.pump_phase, f.pump_phase_bias, f.pump_phase_p, f.pump_phase_i) == (20, 52, -8, -22)
+    assert (f.weight, f.flow_weight) == (11.2, 2.37)
+
+
+def test_frame_from_display_frame():
+    from leva2mqtt.bridge import _frame_from_display
+    from leva2mqtt.display import parse_display
+    d = parse_display("<102GEN.LEVER       1: 90.1\xdf \x04 90.0\xdf\x03             9% 0.4b-  0s 56.2g>")
+    f = _frame_from_display(d)
+    assert f.temperature == 90.1 and f.heater == 9 and f.weight == 56.2 and f.pid_kc is None
