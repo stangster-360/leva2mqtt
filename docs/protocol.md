@@ -148,14 +148,26 @@ Only use a fixed whitelist – several commands change PID values or toggle repo
 <CCC…text…>
 ```
 
-`CCC` is a three-digit code followed by the display text. Decoded from the evening
-cold-start capture, where M. navigated the menu (**seen**):
+`CCC` is a three-digit code followed by the display text (4 lines × 16 characters).
+The format is documented in the ito *Virtual Display Protocol* (`Virtual LCD\protocol.pdf`
+on the ito DVD, 2018; not copied here) – **dev**. It matches our captures (**seen**):
 
-| Digit | Meaning |
-|---|---|
-| 1st | display on (`1`) / off (`0`). Turns `0` exactly 180 s after the last interaction or power-on (setup `Auto-off 180s`); turns `1` again with input or with `READY` |
-| 2nd | input event in this frame: `0` none, `1` encoder turned one way, `2` the other way, `3` click, `9` brew switch (pump start / stop) |
-| 3rd | screen: `2` main / shot screen, `1` menu |
+| Digit | Document | Seen in captures |
+|---|---|---|
+| 1st | backlight: `0` off, `1` on | display off 180 s after the last input (`Auto-off 180s`), on again with input or `READY` |
+| 2nd | pressed button: `0` none, `1` up, `2` down, `3` OK, `4` cancel, `5`/`6` user buttons | `1`/`2` encoder turned, `3` click; also `9` at pump start / stop (brew switch) – not in the document |
+| 3rd | layout: `0` text 4×16, `1` menu (first line underlined), `2` titled text (9-character title + 3 lines) | `2` main and shot screen (title = profile name, max. 9 characters), `1` menu |
+
+Control characters per the document: `\x01`/`\x02`/`\x03` bar segments (1/3, 2/3, full
+width), `\x04` right arrow (cursor), `\x05` checkmark, `\x06` ±, `\x07` alarm bell
+(probably used with alerts, **unverified**). The degree sign is named as code 225 in the
+document; our captures show `ß` (0xDF) – the parser accepts both.
+
+The module bridges port 23 transparently to the ATmega's first UART (115200 8N1) – **dev**
+(same document). This explains why the report mode is global: all TCP clients share one
+serial line. Virtual Display buttons are sent as `MC` + a raw byte 0–6 (not the
+characters `0`–`6`), repeated at least once per second while pressed – the bridge never
+sends these.
 
 So `002` is simply "main screen, display off", not a machine state – the earlier
 readings (standby, "ready") are superseded by this.

@@ -5,9 +5,13 @@ A display frame is `<CCC` + the 4 × 16 characters of the LCD + `>`:
     <102GEN.LEVER       1: 86.6ß \x04 90.0ß\x03             9% 3.3b-  0s   0ml>
         |-- line 1 ----||-- line 2 ----||-- line 3 ----||-- line 4 ----|
 
-CCC: 1st digit display on/off, 2nd input event (0 none, 1/2 encoder turned, 3 click,
-9 brew switch / pump start and stop), 3rd screen (2 main / shot screen, 1 menu). Control characters 0x01-0x05 are bar-graph
-and arrow glyphs, `ß` (0xDF) is the degree sign.
+CCC per the ito Virtual Display protocol (protocol.pdf on the ito DVD): 1st digit backlight
+(0 off, 1 on), 2nd pressed button (0 none, 1 up, 2 down, 3 OK, 4 cancel, 5/6 user buttons;
+seen: 1/2 encoder turned, 3 click; leva! also sends 9 at brew-switch start and stop, not in
+the document), 3rd layout (0 text 4x16, 1 menu with underlined first line, 2 titled text:
+a 9-character title plus three lines - leva!'s main and shot screen). Control characters:
+1/2/3 bar segments of 1/3, 2/3, 1/1 width, 4 right arrow, 5 checkmark, 6 plus-minus,
+7 alarm bell. The degree sign is `ß` (0xDF) in our captures; the document names code 225.
 
 Main screen, as seen: line 1 profile, line 2 `1: <temp>ß <setpoint>ß` (`ECO` instead of
 the setpoint in eco, `READY` for 10 s when ready), line 3 heater bar and output in %,
@@ -80,7 +84,7 @@ def parse_display(line: str) -> Optional[Display]:
         return Display(**base, standby=True)
 
     l1, l2, l3, l4 = lines
-    temps = [float(x) for x in re.findall(r"(-?\d+(?:\.\d+)?)\s*ß", l2)]
+    temps = [float(x) for x in re.findall(r"(-?\d+(?:\.\d+)?)\s*[ßá]", l2)]
     weight = _f(_NUM + r"g\b", l4)
     volume = _f(r"(\d+)ml\b", l4)
     shot = bool(_SHOT_RE.match(l1))
@@ -89,7 +93,7 @@ def parse_display(line: str) -> Optional[Display]:
         eco="ECO" in l2,
         ready="READY" in l2,
         shot=shot,
-        profile=None if shot or "ß" in l1 else (l1.strip() or None),
+        profile=None if shot or "ß" in l1 or "á" in l1 else (l1.strip() or None),
         temperature=temps[0] if temps else None,
         setpoint=temps[1] if len(temps) > 1 else None,
         heater=int(h) if (h := _f(r"(\d{1,3})%", l3)) is not None else None,
