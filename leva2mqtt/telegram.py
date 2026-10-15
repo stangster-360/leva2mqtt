@@ -53,7 +53,11 @@ def format_shot(record: dict, machine: str, url: Optional[str] = None,
     now = time.time() if now is None else now
     title = (t["late"].format(time=f"{start.astimezone():%H:%M}")
              if now - start.timestamp() > LATE_S else t["title"])
-    lines = [f"☕ <b>{esc(machine)}</b> · {title}", ""]
+    lines = [f"☕ <b>{esc(machine)}</b> · {title}"]
+    coffee = record.get("coffee_bag") or record.get("bean")
+    if coffee:   # the coffee is the headline of the message, above the numbers
+        lines.append(f"🫘 <b>{esc(coffee)}</b>")
+    lines.append("")
 
     parts = []
     if record.get("duration") is not None:
@@ -79,14 +83,9 @@ def format_shot(record: dict, machine: str, url: Optional[str] = None,
     if record.get("temperature_start") is not None:
         lines.append("🌡 " + t["boiler"].format(t=n(record["temperature_start"])))
 
-    coffee = record.get("coffee_bag") or record.get("bean")
     grind = " · ".join(x for x in (record.get("grinder"), record.get("grinder_setting")) if x)
-    if coffee or grind:
-        lines.append("")
-        if coffee:
-            lines.append(f"🫘 {esc(coffee)}")
-        if grind:
-            lines.append(f"⚙️ {esc(grind)}")
+    if grind:
+        lines += ["", f"⚙️ {esc(grind)}"]
     if url:
         lines += ["", f'📊 <a href="{esc(url, quote=True)}">{t["link"]}</a>']
     while lines[-1] == "":
