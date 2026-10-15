@@ -124,7 +124,7 @@ def test_telegram_names_the_bag():
     rec = {"start": "2026-10-13T10:00:00+00:00", "coffee_bag": "Kenia – K", "bean": "free text",
            "grinder_setting": "12"}
     text = telegram.format_shot(rec, "Silvia", now=0)
-    assert text.splitlines()[0] == "☕ <b>Kenia – K</b>" and "⚙️ 12" in text and "free text" not in text
+    assert text.splitlines()[0] == "🫘 <b>Kenia – K</b>" and "⚙️ 12" in text and "free text" not in text
 
 
 # --- grinders (from the configuration; Visualizer has no grinder API) ---------

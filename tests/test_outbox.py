@@ -184,11 +184,11 @@ def test_telegram_text():
     start = 1791801071.0   # 10:31:11 UTC
     de = format_shot(rec, "Silvia", "https://v/1?a=1&b=2", now=start + 30, language="de")
     assert de.splitlines() == [
-        "☕ <b>CUERPO – Südhang</b>",
+        "🫘 <b>CUERPO – Südhang</b>",
         "⏱ <b>21 s</b> · <b>42,3 g</b> aus 18,0 g (1:2,3)",
+        "",
         "📈 Spitze <b>7,7 bar</b>   💧 erster Tropfen nach 9 s",
         "🌡 Kessel 90,8 °C beim Start",
-        "",
         "⚙️ DF64 · 2,6",
         "",
         '📊 <a href="https://v/1?a=1&amp;b=2">Auf Visualizer ansehen</a>',
@@ -201,8 +201,8 @@ def test_telegram_text():
 def test_telegram_escapes_names_and_skips_empty_lines():
     from leva2mqtt.telegram import format_shot
     text = format_shot({"start": REC["start"], "bean": "<Blend> & Co"}, "A<B", now=0)
-    assert "☕ <b>&lt;Blend&gt; &amp; Co</b>" in text and "A&lt;B" not in text
-    assert "⏱" not in text and "🌡" not in text and "⚙️" not in text
+    assert "🫘 <b>&lt;Blend&gt; &amp; Co</b>" in text and "A&lt;B" not in text
+    assert "⏱" not in text and "🌡" not in text and "⚙️" not in text and "\n\n" not in text
     assert format_shot({"start": REC["start"]}, "A<B", now=0) == "☕ <b>A&lt;B</b> · Shot finished"
 
 

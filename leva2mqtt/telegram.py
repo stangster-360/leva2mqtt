@@ -53,7 +53,7 @@ def format_shot(record: dict, machine: str, url: Optional[str] = None,
     now = time.time() if now is None else now
     # headline: the coffee; without one, machine name and "Shot finished"
     coffee = record.get("coffee_bag") or record.get("bean")
-    lines = [f"☕ <b>{esc(coffee)}</b>" if coffee
+    lines = [f"🫘 <b>{esc(coffee)}</b>" if coffee
              else f"☕ <b>{esc(machine)}</b> · {t['title']}"]
     if now - start.timestamp() > LATE_S:
         lines.append("🕓 " + t["late"].format(time=f"{start.astimezone():%H:%M}"))
@@ -71,6 +71,7 @@ def format_shot(record: dict, machine: str, url: Optional[str] = None,
         parts.append(f"<b>{record['volume']} ml</b>")
     if parts:
         lines.append("⏱ " + " · ".join(parts))
+    lines.append("")
 
     parts = []
     if record.get("peak_pressure") is not None:
@@ -84,7 +85,9 @@ def format_shot(record: dict, machine: str, url: Optional[str] = None,
 
     grind = " · ".join(x for x in (record.get("grinder"), record.get("grinder_setting")) if x)
     if grind:
-        lines += ["", f"⚙️ {esc(grind)}"]
+        lines.append(f"⚙️ {esc(grind)}")
+    if lines[-1] == "":
+        lines.pop()
     if url:
         lines += ["", f'📊 <a href="{esc(url, quote=True)}">{t["link"]}</a>']
     while lines[-1] == "":

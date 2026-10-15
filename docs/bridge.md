@@ -299,16 +299,16 @@ setting stays a text entity.
 Sent with `parse_mode=HTML`, link preview off. Lines without a value are left out
 (no scale → volume instead of weight; no bag, bean or grinder → no coffee lines; upload
 not done yet → no link). Names from Visualizer and the configuration are HTML-escaped. The headline is the coffee
-(Visualizer coffee bag, else the free-text bean); without one it is the machine name
-and "Shot finished".
+(Visualizer coffee bag, else the free-text bean); without one it is a cup, the machine
+name and "Shot finished".
 Example (`telegram.language: de`):
 
 ```
-☕ <b>CUERPO – Südhang</b>
+🫘 <b>CUERPO – Südhang</b>
 ⏱ <b>21 s</b> · <b>42,3 g</b> aus 18,0 g (1:2,3)
+
 📈 Spitze <b>7,7 bar</b>   💧 erster Tropfen nach 9 s
 🌡 Kessel 90,8 °C beim Start
-
 ⚙️ DF64 · 2,6
 
 📊 <a href="https://visualizer.coffee/shots/…">Auf Visualizer ansehen</a>
