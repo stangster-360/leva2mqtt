@@ -197,7 +197,7 @@ Shot values: duration (from `*`), yield (max. scale weight incl. tail), volume (
 meter, reads ~6 % low), peak pressure, first drop (first scale reading above
 0.2 g; in the 13.10. shots the first readings were 0.3 / 0.6 g, about 0.3 s after M. saw
 the drop, **seen**), mean flow by weight after the first drop, boiler temperature at start
-and minimum, profile name (position in the frame **unverified**), plus dose, ratio,
+and minimum, profile name (selected profile, frame positions 272–280), plus dose, ratio,
 bean and grinder setting from the settings entities.
 
 Replaying the `shots` capture gives 21.4 s / 42.3 g and 18.1 s / 42.9 g; M. read

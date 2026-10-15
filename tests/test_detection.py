@@ -241,6 +241,9 @@ def test_all_fields_of_a_captured_shot_frame():
     assert (f.target_pressure, f.pressure, f.pressure_min, f.pressure_max) == (8.32, 8.22, 7.92, 8.6)
     assert (f.pump_phase, f.pump_phase_bias, f.pump_phase_p, f.pump_phase_i) == (20, 52, -8, -22)
     assert (f.weight, f.flow_weight) == (11.2, 2.37)
+    assert f.pid_selected == 1 and f.increment == 1.0
+    assert (f.profile1, f.profile2, f.profile3, f.profile4) == ("9BAR", "GEN.LEVER", None, None)
+    assert f.profile == "GEN.LEVER" and f.flow_target is None
 
 
 def test_frame_from_display_frame():

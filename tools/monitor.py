@@ -430,7 +430,8 @@ class Monitor:
                 ("weight", num(f.weight, ".1f", "g"), ""),
                 ("flow", num(f.flow_weight, ".2f", "g/s"), ""),
             ]))
-            out.append(("Profile", [("name", f.profile, "position unverified")]))
+            out.append(("Profile", [("name", f.profile, "selected"),
+                                    ("flow target", num(f.flow_target, "d", "ml/min"), "flow tracking")]))
 
         d = self.display
         show_display = d is not None and (self.mode == "display"

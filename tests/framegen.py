@@ -17,7 +17,8 @@ def _sealed(buf):
 
 def frame(pump="-", mode="PID", temp=90.0, setpoint=90.0, heater=10, volume=0, pulses=0,
           rate=0, target=None, pressure=0.5, weight=None, flow_weight=None,
-          profile="GEN.LEVER", standby=False, heater_avg=10.0):
+          profile="GEN.LEVER", standby=False, heater_avg=10.0,
+          slots=("9BAR", "GEN.LEVER", "", "")):
     buf = ["?"] * LEN
     buf[0], buf[1], buf[-1] = "{", " ", "}"
     _put(buf, LEN - 5, "~ 00")
@@ -42,5 +43,7 @@ def frame(pump="-", mode="PID", temp=90.0, setpoint=90.0, heater=10, volume=0, p
         _put(buf, 226, f"{weight:05.1f}")
     if flow_weight is not None:
         _put(buf, 231, f"{flow_weight:05.2f}")
-    _put(buf, 245, profile.ljust(21))
+    for i, name in enumerate(slots):
+        _put(buf, 236 + 9 * i, name.rjust(9))
+    _put(buf, 272, profile.ljust(9))
     return _sealed(buf)

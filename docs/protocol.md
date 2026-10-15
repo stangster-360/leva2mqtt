@@ -277,47 +277,48 @@ Captured during a 7 s flush (`shotscreen`, 13.10., control characters shown as `
 
 ### Decoded fields (0-based character positions)
 
-The leva! download contains a Status Monitor definition (`leva!-1.4.xml`, not copied
-here). It describes an older frame layout with separators, so its positions do not
-apply to our 289-character frames – but its **field order and names do** (checked
-against captured idle and shot frames): PID 1 block (type, temperature, setpoint,
-output, P, I, D, feed-forward, dPV/dt, Kc, Ti, Td, wind-up limit, average output), the
-same block for PID 2, then flow meter volume, ticks, rate, setpoint increment, PCB and
-AUX 1–3 temperatures, pressure setpoint, pressure, pressure band min/max, pump phase
-with bias/P/I terms, weight, weight change rate. Entries below marked **dev** take
-their meaning from that order. In the old XML the report cycle is 500 ms; ours is
-250 ms.
+The module names its Status Monitor definition in the `MC?` reply: `XML=leva!-64EA1111`
+for our leva! 3.0. That file (not copied here) gives every field's position, length,
+type and unit for exactly our 289-character frame, with a report cycle of 250 ms. All
+positions below agree with it and with our captures. The older `leva!-1.4.xml` from the
+leva! download has the same field order but a layout with separators. Meanings marked
+**dev** come from the 3.0 file alone. Gaps of one character (86, 126, 173, 179, 185,
+191) belong to no field.
 
 | Pos. | Example | Meaning | Status |
 |---|---|---|---|
 | 2 | `-` / `*` | `*` = pump / brew program active. **Not** the same as "shot": it also stays set while the pump runs dry or water is drawn through the steam wand. | **seen** |
+| 3 | `1` | Not in the 3.0 file. Always `1` here, also in standby. Perhaps the PID selected with `MC1`/`MC2` (the Status Monitor help lists "1/2 Choose PID") | **unverified** |
 | 4–6 | `PID` | Control mode of PID 1 (`PID`, `ECO`, `OFF`, `CLD`, `ATN` per developer). `PID` when awake, `ECO` in eco (with the eco setpoint in the next field and no heater output), `???` in standby. `OFF`, `CLD`, `ATN` not seen | partly **seen** |
 | 7–12 | `090.15` | Boiler temperature °C | **seen** |
 | 13–17 | `090.0` | Setpoint °C, one decimal (shows the eco setpoint `069.9` while in eco) | **seen** |
 | 18–20 | `017` | Heater output %, three digits, `100` at full power (= P + I + D, clamped). Earlier notes read 13–18 / 19–20, which cut off the hundreds digit; corrected with the cold-start capture (609 frames at `100`) | **seen** |
 | 21–26 / 27–32 / 33–38 | `0001.1` `0007.1` `0008.5` | PID terms P, I, D | **seen** |
-| 39–44 | `0000.0` | PID 1 feed-forward term | **dev**, always 0 here |
+| 39–44 | `0000.0` | PID 1 feed-forward term, % | **dev**, always 0 here |
 | 45–52 | `-00.0625` | Rate of temperature change (dPV/dt), used by the D term | **seen** |
 | 53–57 / 58–62 / 63–67 | `009.4` `058.0` `014.5` | PID constants Kc, Ti, Td | **seen** |
-| 68–72 | `020.0` | PID 1 wind-up limit, % | **dev** |
+| 68–72 | `020.0` | PID 1 wind-up guard, % | **dev** |
 | 73–77 | `019.5` | Average heater output of PID 1 in % over the previous minute, updated about once per minute. Mean of the heater field over the window: 19.5 % → `019.5`, 0.0 % → `000.0` (steam capture). Matches the manual's "average output per minute". | **seen** |
+| 78–80 / 81–85 / 87–91 / 92–94 | `OFF` `?????` | PID 2: control type, temperature °C, setpoint °C, output % | **dev**, type `OFF` **seen** |
+| 95–100 / 101–106 / 107–112 / 113–118 | `??????` | PID 2 terms P, I, D, feed-forward | **dev**, `?` here (PID 2 off) |
+| 119–125 / 127–131 / 132–136 / 137–141 / 142–146 / 147–151 | `?` | PID 2 dPV/dt (7 characters), Kc, Ti, Td, wind-up guard, average output | **dev**, `?` here |
 | 152–154 | `098` | Flow meter volume, ml. Counts from 0 when the pump starts. Reference run on a primed group, empty portafilter: counter 96 ml, scale 102.3 g (counter ~6 % low; in flight ~3–4 % low, and ~3 g more arrives after the pump stops). The first run (group not primed) showed the opposite sign, so check again with more runs before correcting by a factor. | **seen**, calibration **unverified** |
 | 155–159 | `00241` | Flow meter **pulses** (2.07–2.10 per ml: 241 pulses for 115 ml, 201 for 96 ml). Not a shot timer. | **seen** |
-| 78–151 | `OFF???…` | PID 2 block, same layout as PID 1 (type `OFF` at 78–80, all other fields `?` because PID 2 is off) | **dev**, positions inside the block by analogy |
-| 160–162 | `500` | Flow meter rate in **ml/min** (not ×0.01 ml/s). In an empty-portafilter run the volume rose 111 ml in 13.4 s = 497 ml/min while the field averaged ~500, so counter and rate agree. The field stays within ±5 % of 500 during the run (filtered / interpolated), then decays (`335`, `066`, `000`) after the pump stops. The earlier "~40 % too low" reading came from assuming ×0.01 ml/s. | **seen** (two captures; second run: 90 ml in 11.1 s = 487 ml/min, field average ~490) |
+| 160–162 | `500` | Flow meter rate in **ml/min** (the 3.0 file converts with factor 0.01666 = 1/60 to ml/s). In an empty-portafilter run the volume rose 111 ml in 13.4 s = 497 ml/min while the field averaged ~500, so counter and rate agree. The field stays within ±5 % of 500 during the run (filtered / interpolated), then decays (`335`, `066`, `000`) after the pump stops. The earlier "~40 % too low" reading came from assuming ×0.01 ml/s. | **seen** (two captures; second run: 90 ml in 11.1 s = 487 ml/min, field average ~490) |
 | 163–167 | `001.0` | Setpoint increment for `MC+`/`MC-` (`MC#`: 0.1, 1.0 or 10) – the `001.0` that stays set even in standby | **dev** |
-| 168–173 / 174–179 / 180–185 / 186–191 | `??????` | PCB sensor and AUX 1–3 temperature sensors (not installed here) | **dev**, lengths by fit |
+| 168–172 / 174–178 / 180–184 / 186–190 | `?????` | PCB sensor and AUX 1–3 temperature sensors, °C (not installed here) | **dev** |
 | 192–196 | `08.25` | Target pressure of the active profile, bar. In the second flow run it read `09.00` from the pump start and fell to `07.64` over the last 5 s (the lever decay). In the first flow run the same field showed 0.2–0.6 and no profile curve – why is **unverified** (different way of starting the pump?). | **seen** |
 | 197–201 | `08.22` | Brew pressure, bar | **seen**, **dev** |
 | 202–206 / 207–211 | `07.92` `08.60` | "Pressure band" min / max (XML name). Behaves like the min/max of the last reporting interval around the current pressure (1.63–1.75 bar at idle, 7.92–8.60 bar in a shot) | **dev**, behaviour **seen** |
 | 212–214 / 215–217 / 218–221 / 222–225 | `020` `052` `-008` `-022` | Pump phase angle (pressure control output) with its bias, P and I terms; `?` when no profile controls the pump | **dev** |
 | 226–230 | `042.1` | Scale weight, g. Matches the scale display (final 102.3 g in the frame, 102.3 g read off the scale). Reads `000.0` after the cup is removed. | **seen** |
 | 231–235 | `03.12` | Flow by weight, g/s | **seen** |
-| 236–288 | `     9BARGEN.LEVER …GEN.LEVER???` | Not in the old XML. Contains shortcut names (`9BAR`, `GEN.LEVER`) and the active profile name; layout **unverified** | **seen** |
+| 236–244 / 245–253 / 254–262 / 263–271 | `     9BAR` `GEN.LEVER` | Profile slots 1–4, 9 characters each (right-aligned in slot 1, empty slots are blanks) | **dev**, contents **seen** |
+| 272–280 | `GEN.LEVER` | Selected profile (same 9-character name as the display title) | **dev**, **seen** |
+| 281–283 | `???` | Flow tracking target in ml/min (factor 0.01666 to ml/s, leva! 3.0 feature, configured per pressure profile); `?` when not used | **dev** |
 | last 2 before `}` | `A9` | Checksum: two's complement of the 8-bit sum of all characters before `~` (sum + checksum ≡ 0 mod 256). The ito manual calls it the "binary complement" of the sum; the two's complement is what matches: 21 172 of 21 173 captured frames, the one miss was a 215-character line with lost characters. The parser drops frames with a wrong checksum. | **seen**, **dev** |
 
-Not decoded yet: position 3 (always `1`; perhaps the selected PID, `MC1`/`MC2`), the
-layout of 236–288.
+Not decoded yet: position 3 (see above). 284–288 hold the checksum `~ XX` and `}`.
 
 There is **no shot timer** in the rich frame. Shot duration has to be measured by the
 client from the `*` flag and its own clock.
