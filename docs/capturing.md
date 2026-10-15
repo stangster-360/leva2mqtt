@@ -177,6 +177,18 @@ pressure rise, first drop)? A flush is not timed (seen).
 1. `capture.py <ip> shot-display --mode display`, pull a normal shot, note
    `# first drop`, read the shot time off the display afterwards: `# display 17s`, `q`.
 
+### Answered by the documentation (no capture needed)
+
+Field meanings 39–44, 68–72, 78–151, 163–167, 168–191, 202–225 (leva! Status Monitor XML),
+the `~ XX` checksum, display code digits and control characters (Virtual Display
+protocol), connection limit and idle timeout, why the report mode is global, `MCR`, the
+command list and the WLAN modes (ito Hardware Reference Manual). See protocol.md.
+
+Still open and only answerable by a capture: scenario 11 (report right after power-on,
+once the WLAN is stable), 12 (shot timer in display mode), more ready beeps (absolute or
+relative threshold), 7 (backflush alert position, blinking, `\x07` bell), and single-seen
+rules (hot water, steam threshold, tank empty, flow meter calibration).
+
 ### What the playbook answers
 
 | Question | Scenario |
