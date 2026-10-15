@@ -142,8 +142,11 @@ Placeholder: `<ito-ip>` for the module's address.
 - The red LED on the PCB shows the WLAN state (AP, STA+AP, STA without IP, STA with IP);
   a module that connects for a few seconds and drops again is in a reset loop – the
   manual suggests power-cycling the router, then a WLAN configuration reset.
-- Seen on 14.10.2026: the module dropped out of the network (no ARP answer, display and
-  machine fine); after a WLAN reset the AP reappeared. Cause **unknown**.
+- 14.10.2026: the module seemed to drop out of the network (no ARP answer from the Mac,
+  display and machine fine). Cause found on 15.10.: the Mac, not the ito – macOS had
+  "Local Network" access switched off for the terminal app, which blocks every LAN host
+  except the gateway. If a client gets "No route to host" for the ito while the gateway
+  answers, check that permission first.
 - Status Monitor conventions the leva! output follows: `?` → reply `XML=<name>`; `MCr`
   starts the `{…}` report at the cycle time of the XML file; the third character `*`
   marks an event; `MCR` resends the last packet; values without a reading are sent as
