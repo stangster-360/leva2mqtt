@@ -51,13 +51,12 @@ def format_shot(record: dict, machine: str, url: Optional[str] = None,
 
     start = datetime.fromisoformat(record["start"])
     now = time.time() if now is None else now
-    title = (t["late"].format(time=f"{start.astimezone():%H:%M}")
-             if now - start.timestamp() > LATE_S else t["title"])
-    lines = [f"☕ <b>{esc(machine)}</b> · {title}"]
+    # headline: the coffee; without one, machine name and "Shot finished"
     coffee = record.get("coffee_bag") or record.get("bean")
-    if coffee:   # the coffee is the headline of the message, above the numbers
-        lines.append(f"🫘 <b>{esc(coffee)}</b>")
-    lines.append("")
+    lines = [f"☕ <b>{esc(coffee)}</b>" if coffee
+             else f"☕ <b>{esc(machine)}</b> · {t['title']}"]
+    if now - start.timestamp() > LATE_S:
+        lines.append("🕓 " + t["late"].format(time=f"{start.astimezone():%H:%M}"))
 
     parts = []
     if record.get("duration") is not None:
