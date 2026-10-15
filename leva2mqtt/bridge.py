@@ -269,13 +269,15 @@ class Bridge:
     # --- Home Assistant input -------------------------------------------
 
     def _on_command(self, name: str) -> None:
+        if name == "refresh_coffee_bags":
+            # not a machine command, so it must be handled before the COMMANDS lookup
+            log.info("button %s", name)
+            self._spawn(self._load_bags(manual=True))
+            return
         cmd = COMMANDS.get(name)
         if cmd is None:
             return
         log.info("button %s", name)
-        if name == "refresh_coffee_bags":
-            self._spawn(self._load_bags())
-            return
         if name == "report":
             self.reporter.manual_report(time.time())
             self._spawn(self._send_report())
@@ -372,7 +374,7 @@ class Bridge:
             await self._load_bags()
             await asyncio.sleep(self.cfg.visualizer.coffee_bags_refresh)
 
-    async def _load_bags(self) -> None:
+    async def _load_bags(self, manual: bool = False) -> None:
         """Reload the active coffee bags. On an error the last list stays; an empty list
         (no bags, coffee management not used) removes the select entity."""
         try:
@@ -382,6 +384,8 @@ class Bridge:
             log.warning("cannot load coffee bags from Visualizer: %s", err)
             return
         self.apply_bags(bags)
+        if manual:
+            log.info("coffee bags reloaded: %d active", len(self._bags or {}))
 
     def apply_bags(self, bags: list[dict]) -> None:
         old = self._bags

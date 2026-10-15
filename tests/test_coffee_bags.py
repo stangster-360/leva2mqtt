@@ -176,3 +176,21 @@ def test_bean_not_used_with_coffee_bags():
     assert b._record(R())["bean"] == "old free text"
     b.apply_bags([{"id": "b1", "label": "Kenia – K"}])
     assert "bean" not in b._record(R())
+
+
+def test_refresh_button_reloads_bags(monkeypatch):
+    # regression: the button was dropped by the machine-command lookup in _on_command
+    cfg = load("/nonexistent", {"MACHINE_HOST": "127.0.0.1", "SHOTS_DIRECTORY": "/tmp/x",
+                                "VISUALIZER_USERNAME": "u", "VISUALIZER_PASSWORD": "p"})
+    calls = []
+    monkeypatch.setattr(visualizer, "coffee_bags",
+                        lambda u, p: calls.append(1) or [{"id": "b1", "label": "Brasil"}])
+
+    async def scenario():
+        b = Bridge(cfg)
+        b._on_command("refresh_coffee_bags")
+        await asyncio.sleep(0.2)
+        return b
+
+    b = asyncio.run(scenario())
+    assert calls == [1] and b._bags == {"Brasil": "b1"}
