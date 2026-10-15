@@ -84,6 +84,14 @@ Rules from [detection-rules.md](detection-rules.md), section 1:
   an `XML=` line or setup-dump lines: another client is active, see "Other client".
 - The bridge only ever sends `MCr`, `MC@`, `MCa`, `MCe`, `MCE` and `MCcREPORT SP1`.
   Everything else is refused in code.
+- Frames with a wrong `~ XX` checksum are dropped and counted ("Dropped frames",
+  diagnostic, `total_increasing`, starts at 0 after a bridge restart). One in 21 173
+  captured frames was bad; a rising count points to a weak WLAN link.
+- The ito accepts at most 4 connections on port 23 (ito manual; idle ones time out
+  after 5 min). How it turns away a fifth one is not captured. Heuristic (**unverified**):
+  three connections in a row that end without a single byte (refused, closed at once,
+  or silent until the watchdog) set the diagnostic binary sensor "Connection slots
+  full" and log a warning; the first frame clears it. The retry interval stays 2 s.
 
 ## Setpoint beep (`MCcREPORT SP1`)
 
@@ -162,6 +170,9 @@ firmware's `READY` exist only in display frames. Decided 13.10.:
   after two polls without it, since alerts may blink (**unverified**). Their position
   on the screen is unknown (no alert captured yet), so the whole main screen is
   searched.
+- The alarm bell glyph (display control character 7, Protocol.pdf) anywhere on the
+  display counts as the alert `BELL` when no alert text is found, so an unknown alert
+  still switches "Maintenance alert" on. Never seen in a capture (**unverified**).
 - Entities: "Maintenance alerts" (`none` or e.g. `BACKFL`, unknown until the first
   poll) and the binary sensor "Maintenance alert" (problem).
 
@@ -199,6 +210,11 @@ meter, reads ~6 % low), peak pressure, first drop (first scale reading above
 the drop, **seen**), mean flow by weight after the first drop, boiler temperature at start
 and minimum, profile name (selected profile, frame positions 272–280), plus dose, ratio,
 bean and grinder setting from the settings entities.
+
+The shot file also keeps series Visualizer has no place for (pump phase angle, pressure
+band min/max) under `leva2mqtt.series`; they are not uploaded. A flow tracking target
+(frame 281–283, leva! 3.0, `???` on M.'s machine) goes to Visualizer as `flow.goal` in
+ml/s; whether Visualizer shows it is **unverified**.
 
 Replaying the `shots` capture gives 21.4 s / 42.3 g and 18.1 s / 42.9 g; M. read
 42.3 g and 42.9 g off the scale.
@@ -289,6 +305,7 @@ setting stays a text entity.
 | `last_shot` | last shot as JSON, retained; gets `visualizer_url` after the upload |
 | `event` | every finished run (`shot`, `flush`, `tank_empty`); `shot_uploaded` with the Visualizer URL |
 | `pending` | number of shots waiting for delivery, retained |
+| `slots_full` | `ON` when the module seems to refuse further connections, retained |
 | `command/<wake\|eco\|standby\|report\|refresh_coffee_bags>` | payload `PRESS` |
 | `settings/<key>` / `settings/<key>/set` | retained runtime settings, restored after a restart |
 
@@ -304,9 +321,19 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
   attribute `heater_averages` = the last three per-minute averages; ready needs a spread
   below 1.0), PID terms and constants Kc / Ti / Td (diagnostic, disabled by default),
   last shot (timestamp, attributes = shot record), last shot yield, last shot duration,
-  shots waiting for delivery (diagnostic), maintenance alerts
+  shots waiting for delivery (diagnostic), maintenance alerts, dropped frames
+  (diagnostic). The profile sensor has the attribute `slots` (the profile names in the
+  four slots).
+- Diagnostic sensors from the frame: pump phase angle (on) and its bias / P / I terms,
+  pressure band min / max, PID feed-forward, wind-up guard and temperature rate
+  (disabled by default)
+- Optional sensors, only announced when the machine reports them: PCB and AUX 1–3
+  temperatures, flow tracking target, PID 2 (control mode, temperature, setpoint,
+  output; terms and constants diagnostic and disabled) – PID 2 only while its control
+  mode is not `OFF`
 - Binary sensors: pump, heating up, boiler at temperature, ready, steam mode, hot water,
-  maintenance alert (problem), other client connected (diagnostic)
+  maintenance alert (problem), other client connected (diagnostic), connection slots
+  full (diagnostic, problem)
 - Buttons: wake (`MCa`), eco (`MCe`), standby (`MCE`), beep setpoint
 - Settings: dose (number); grinder setting (text); bean (text, only while Visualizer
   has no coffee bags) or coffee bag (select, only with bags on Visualizer) and a button

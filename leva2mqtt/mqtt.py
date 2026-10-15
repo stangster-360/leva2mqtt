@@ -9,6 +9,8 @@ Topics (base = <topic_prefix>/<machine id>):
   base/event                  every finished pump run as JSON (shot, flush, …),
                               and shot_uploaded with the Visualizer URL
   base/pending                number of shots waiting for upload / message, retained
+  base/slots_full             ON when the module seems to refuse further connections
+                              (all 4 slots in use, heuristic, unverified), retained
   base/command/<button>       PRESS: wake, eco, standby, report, refresh_coffee_bags
   base/settings/<key>         runtime settings, retained (restored on start)
   base/settings/<key>/set     set a runtime setting
@@ -59,6 +61,40 @@ SENSORS: dict[str, tuple] = {
     "heater_avg_spread": ("Heater average spread", "%", None, "measurement",
                           "mdi:arrow-expand-vertical", "diagnostic", True, 1),
     "alert": ("Maintenance alerts", None, None, None, "mdi:alert-circle-outline", None, True, None),
+    # pump phase angle control (pos 212-225), only during a profile run
+    "pump_phase": ("Pump phase", "°", None, "measurement", "mdi:sine-wave", "diagnostic", True, 0),
+    "pump_phase_bias": ("Pump phase bias", "°", None, "measurement", None, "diagnostic", False, 0),
+    "pump_phase_p": ("Pump phase P term", "°", None, "measurement", None, "diagnostic", False, 0),
+    "pump_phase_i": ("Pump phase I term", "°", None, "measurement", None, "diagnostic", False, 0),
+    "pressure_min": ("Pressure band min", "bar", "pressure", "measurement", None, "diagnostic", False, 2),
+    "pressure_max": ("Pressure band max", "bar", "pressure", "measurement", None, "diagnostic", False, 2),
+    "pid_ff": ("PID feed-forward", "%", None, "measurement", None, "diagnostic", False, 1),
+    "pid_windup": ("PID wind-up guard", "%", None, None, None, "diagnostic", False, 1),
+    "temperature_rate": ("Boiler temperature rate", None, None, "measurement", None, "diagnostic", False, 3),
+    # optional sensors of the ito: only announced when the machine reports them
+    "temperature_pcb": ("PCB temperature", "°C", "temperature", "measurement", None, None, True, 1),
+    "temperature_aux1": ("AUX 1 temperature", "°C", "temperature", "measurement", None, None, True, 1),
+    "temperature_aux2": ("AUX 2 temperature", "°C", "temperature", "measurement", None, None, True, 1),
+    "temperature_aux3": ("AUX 3 temperature", "°C", "temperature", "measurement", None, None, True, 1),
+    # PID 2 (only published when its control mode is not OFF)
+    "mode2": ("PID 2 control mode", None, None, None, "mdi:tune", None, True, None),
+    "temperature2": ("PID 2 temperature", "°C", "temperature", "measurement", None, None, True, 1),
+    "setpoint2": ("PID 2 setpoint", "°C", "temperature", "measurement", None, None, True, 1),
+    "heater2": ("PID 2 output", "%", None, "measurement", "mdi:radiator", None, True, 0),
+    "heater2_avg": ("PID 2 output last minute", "%", None, "measurement", None, "diagnostic", False, 1),
+    "pid2_p": ("PID 2 P term", None, None, "measurement", None, "diagnostic", False, 1),
+    "pid2_i": ("PID 2 I term", None, None, "measurement", None, "diagnostic", False, 1),
+    "pid2_d": ("PID 2 D term", None, None, "measurement", None, "diagnostic", False, 1),
+    "pid2_ff": ("PID 2 feed-forward", "%", None, "measurement", None, "diagnostic", False, 1),
+    "pid2_kc": ("PID 2 Kc", None, None, None, None, "diagnostic", False, 1),
+    "pid2_ti": ("PID 2 Ti", None, None, None, None, "diagnostic", False, 1),
+    "pid2_td": ("PID 2 Td", None, None, None, None, "diagnostic", False, 1),
+    "pid2_windup": ("PID 2 wind-up guard", "%", None, None, None, "diagnostic", False, 1),
+    "temperature2_rate": ("PID 2 temperature rate", None, None, "measurement", None, "diagnostic", False, 3),
+    # flow tracking target (pos 281-283, leva! 3.0); no device class, like flow_rate
+    "flow_target": ("Flow tracking target", "mL/min", None, "measurement", "mdi:target", None, True, 0),
+    "bad_frames": ("Dropped frames", None, None, "total_increasing", "mdi:alert-octagon-outline",
+                   "diagnostic", True, 0),
 }
 
 # key: (name, device_class, icon)
@@ -110,6 +146,7 @@ class MqttOutput:
         self._announced: set[str] = set()
         self._machine_online = False
         self._pending = 0
+        self._slots_full = False
         self._bag_options: Optional[list[str]] = None   # None = no coffee bag entity
         self._bag_announced = False
         self._connected = False
@@ -211,6 +248,10 @@ class MqttOutput:
     def publish_event(self, payload: dict) -> None:
         self._pub(f"{self.base}/event", payload, qos=1)
 
+    def publish_slots(self, full: bool) -> None:
+        self._slots_full = full
+        self._pub(f"{self.base}/slots_full", "ON" if full else "OFF", retain=True, qos=1)
+
     def publish_pending(self, count: int) -> None:
         self._pending = count
         self._pub(f"{self.base}/pending", str(count), retain=True, qos=1)
@@ -283,6 +324,11 @@ class MqttOutput:
             "state_topic": f"{self.base}/pending", "state_class": "measurement",
             "entity_category": "diagnostic", **self._availability(machine=False)})
         self.publish_pending(self._pending)
+        self._config("binary_sensor", "slots_full", {
+            "name": "Connection slots full", "device_class": "problem",
+            "state_topic": f"{self.base}/slots_full", "entity_category": "diagnostic",
+            **self._availability(machine=False)})
+        self.publish_slots(self._slots_full)
         self._announce_settings()
         # give retained settings from the broker time to arrive (restore) first
         self.loop.call_later(2.0, self._publish_settings)
@@ -305,6 +351,9 @@ class MqttOutput:
         if key == "heater_avg_spread":
             c["json_attributes_topic"] = f"{self.base}/state"
             c["json_attributes_template"] = "{{ {'heater_averages': value_json.heater_avgs} | tojson }}"
+        if key == "profile":
+            c["json_attributes_topic"] = f"{self.base}/state"
+            c["json_attributes_template"] = "{{ {'slots': value_json.get('profiles', [])} | tojson }}"
         self._config("sensor", key, c)
 
     def _announce_settings(self) -> None:

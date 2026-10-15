@@ -59,6 +59,9 @@ def to_decent_json(run: Run, dose: Optional[float] = None, bean: Optional[str] =
         data["totals"]["weight"] = _series((x.weight for x in s), nd=1)
     if any(x.flow_weight is not None for x in s):
         data["flow"]["by_weight"] = _series(x.flow_weight for x in s)
+    if any(x.flow_target is not None for x in s):
+        # flow tracking target, ml/min -> ml/s; whether Visualizer shows it: unverified
+        data["flow"]["goal"] = _series((x.flow_target for x in s), 1 / 60)
 
     settings: dict = {
         "espresso_notes": f"Recorded by leva2mqtt {__version__}. "
@@ -76,6 +79,16 @@ def to_decent_json(run: Run, dose: Optional[float] = None, bean: Optional[str] =
         settings["grinder_model"] = grinder_model
     data["app"] = {"data": {"settings": settings}}
     return data
+
+
+def extra_series(run: Run) -> Optional[dict]:
+    """Series Visualizer has no place for; kept in the shot file only (not uploaded)."""
+    s = run.samples
+    out = {}
+    for key in ("pump_phase", "pressure_min", "pressure_max"):
+        if any(getattr(x, key) is not None for x in s):
+            out[key] = [getattr(x, key) for x in s]
+    return out or None
 
 
 def _error(e: urllib.error.HTTPError, permanent: tuple[int, ...]) -> Exception:

@@ -177,6 +177,16 @@ pressure rise, first drop)? A flush is not timed (seen).
 1. `capture.py <ip> shot-display --mode display`, pull a normal shot, note
    `# first drop`, read the shot time off the display afterwards: `# display 17s`, `q`.
 
+### 13. Fifth connection – `slots-full` – ~3 min, bridge stopped
+
+How does the module turn away a fifth connection (refused, closed at once, or open
+but silent)? The bridge's "Connection slots full" sensor guesses from that.
+1. Open four connections that stay idle, each in its own terminal:
+   `nc <ip> 23` (4×).
+2. `capture.py <ip> slots-full --mode mcr --no-resend`, watch the first 30 s, note what
+   happens (`# refused`, `# closed`, `# silent`), `q`.
+3. Close one `nc`, start the capture again: frames should come at once.
+
 ### Answered by the documentation (no capture needed)
 
 Field meanings 39–44, 68–72, 78–151, 163–167, 168–191, 202–225 (leva! Status Monitor XML),

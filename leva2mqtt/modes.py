@@ -149,6 +149,10 @@ class ModeController:
         if d.main and not d.standby and not d.shot:
             self._frames += 1
             self._seen.update(d.alerts)
+        if d.bell and not d.alerts:
+            # alarm bell without a known alert text, on any screen (Protocol.pdf:
+            # character 7); never seen in a capture, unverified
+            self._seen.add("BELL")
 
     def _evaluate(self) -> None:
         if self._frames < self.min_frames:

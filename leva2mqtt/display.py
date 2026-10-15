@@ -50,6 +50,7 @@ class Display:
     display_on: bool
     input_event: bool                  # encoder turned or clicked in this frame
     main: bool                         # main or shot screen (not a menu)
+    bell: bool = False                 # alarm bell glyph (control character 7) anywhere
     standby: bool = False
     eco: bool = False
     ready: bool = False                # firmware READY shown (10 s)
@@ -77,7 +78,7 @@ def parse_display(line: str) -> Optional[Display]:
     clean = re.sub(r"[\x00-\x1f]", " ", body).ljust(64)[:64]
     lines = (clean[0:16], clean[16:32], clean[32:48], clean[48:64])
     base = dict(raw=s, code=code, lines=lines, display_on=code[0] == "1",
-                input_event=code[1] != "0", main=code[2] == "2")
+                input_event=code[1] != "0", main=code[2] == "2", bell="\x07" in body)
     if not base["main"]:
         return Display(**base)
     if "STANDBY" in clean:

@@ -113,11 +113,14 @@ class Outbox:
             log.info("%d shot(s) pending from a previous run", len(self.entries))
         self._changed()
 
-    def add(self, name: str, shot: dict, record: dict, targets: list[str]) -> Entry:
+    def add(self, name: str, shot: dict, record: dict, targets: list[str],
+            extra: Optional[dict] = None) -> Entry:
         delivery = {t: {"state": PENDING if t in targets else SKIPPED, "attempts": 0}
                     for t in TARGETS}
-        data = {**shot, "leva2mqtt": {"record": record, "delivery": delivery,
-                                      "created": self.clock(), "failures": 0}}
+        meta = {"record": record, "delivery": delivery, "created": self.clock(), "failures": 0}
+        if extra:
+            meta["series"] = extra     # stays in the file, Entry.shot leaves it out
+        data = {**shot, "leva2mqtt": meta}
         e = Entry(name, data)
         self.entries[name] = e
         self._save(e)

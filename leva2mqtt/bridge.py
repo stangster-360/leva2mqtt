@@ -10,7 +10,7 @@ from typing import Any, Optional
 from . import telegram, visualizer
 from .config import Config
 from .display import Display
-from .frame import Frame
+from .frame import COUNTERS, Frame
 from .link import Link
 from .machine import (BREWING, HOT_WATER, MODE_AWAKE, MODE_ECO, OFFLINE, STEAM, Settings,
                       Tracker, WakeReporter)
@@ -19,6 +19,17 @@ from .outbox import DONE, PENDING, Entry, Outbox, PermanentError
 from .shots import SHOT, Run, ShotRecorder
 
 log = logging.getLogger(__name__)
+
+# frame fields published as live values (entities appear once a value is seen)
+PID2_KEYS = ("mode2", "temperature2", "setpoint2", "heater2", "heater2_avg", "pid2_p", "pid2_i",
+             "pid2_d", "pid2_ff", "pid2_kc", "pid2_ti", "pid2_td", "pid2_windup",
+             "temperature2_rate")
+FRAME_KEYS = ("temperature", "setpoint", "heater", "heater_avg", "pressure", "target_pressure",
+              "weight", "flow_weight", "flow_rate", "volume", "profile", "pid_p", "pid_i",
+              "pid_d", "pid_kc", "pid_ti", "pid_td", "pump_phase", "pump_phase_bias",
+              "pump_phase_p", "pump_phase_i", "pressure_min", "pressure_max", "pid_ff",
+              "pid_windup", "temperature_rate", "temperature_pcb", "temperature_aux1",
+              "temperature_aux2", "temperature_aux3", "flow_target") + PID2_KEYS
 
 HEALTH_FILE = "/tmp/leva2mqtt.health"
 COMMANDS = {"wake": "MCa", "eco": "MCe", "standby": "MCE", "report": "MCcREPORT SP1"}
@@ -48,6 +59,7 @@ class Bridge:
         self.modes = ModeController(interval=b.alert_interval, quiet=b.other_client_quiet)
         self.link = Link(cfg.machine.host, cfg.machine.port, self._on_frame, self._on_link,
                          on_display=self._on_display, on_foreign=self._on_foreign)
+        self.link.on_slots = self._on_slots
         self.mqtt = None
         self._last_publish = 0.0
         self._last_state: Optional[str] = None
@@ -183,6 +195,10 @@ class Bridge:
             # shows (no shot logging, no per-minute average)
             self._process(_frame_from_display(d), t, record=False)
 
+    def _on_slots(self, full: bool) -> None:
+        if self.mqtt:
+            self.mqtt.publish_slots(full)
+
     def _on_foreign(self, reason: str, t: float) -> None:
         self.modes.foreign(reason, t)
         self._mode_request(None)
@@ -224,10 +240,15 @@ class Bridge:
             "heater_avg_spread": tr.heater_avg_spread,
             "heater_avgs": list(tr.heater_avgs),
         }
-        for key in ("temperature", "setpoint", "heater", "heater_avg", "pressure",
-                    "target_pressure", "weight", "flow_weight", "flow_rate", "volume",
-                    "profile", "pid_p", "pid_i", "pid_d", "pid_kc", "pid_ti", "pid_td"):
+        for key in FRAME_KEYS:
             values[key] = getattr(f, key)
+        if f.mode2 in (None, "OFF"):
+            # PID 2 not in use (the usual case on a single boiler): no entities for it
+            for key in PID2_KEYS:
+                values[key] = None
+        slots = [f.profile1, f.profile2, f.profile3, f.profile4]
+        values["profiles"] = [p for p in slots if p] or None
+        values["bad_frames"] = COUNTERS["bad_checksum"]
         return values
 
     def _mode_values(self) -> dict:
@@ -317,7 +338,7 @@ class Bridge:
         if self.cfg.telegram_enabled and self.settings.get("telegram_notify"):
             targets.append("telegram")
         name = time.strftime("%Y-%m-%d_%H%M%S", time.localtime(run.start)) + "_shot.json"
-        self.outbox.add(name, shot, rec, targets)
+        self.outbox.add(name, shot, rec, targets, visualizer.extra_series(run))
 
     # --- outbox targets --------------------------------------------------
 

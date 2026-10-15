@@ -113,6 +113,10 @@ def _text(s: str) -> Optional[str]:
 
 _warned_len: set[int] = set()
 
+# Frames dropped since the start, published as a diagnostic sensor. A rising count points
+# to lost characters on the WLAN link (one bad frame in 21 173 captured ones).
+COUNTERS = {"bad_checksum": 0}
+
 
 def checksum_ok(f: str) -> bool:
     """`~ XX` before `}` is the two's complement of the 8-bit sum of all characters before
@@ -134,6 +138,7 @@ def parse(line: str) -> Optional[Frame]:
     if not (f.startswith("{") and f.endswith("}")):
         return None
     if not checksum_ok(f):
+        COUNTERS["bad_checksum"] += 1
         log.debug("MCr frame with bad checksum dropped")
         return None
     if len(f) != FRAME_LEN and len(f) not in _warned_len:

@@ -27,6 +27,10 @@ class Sample:
     flow_weight: Optional[float]
     temperature: Optional[float]
     setpoint: Optional[float]
+    pump_phase: Optional[int] = None      # pump phase angle, ° (profile runs)
+    flow_target: Optional[int] = None     # flow tracking target, ml/min (leva! 3.0)
+    pressure_min: Optional[float] = None  # pressure band of the last interval, bar
+    pressure_max: Optional[float] = None
 
 
 @dataclass
@@ -106,7 +110,9 @@ class ShotRecorder:
                     t=t - run.start, pump=pump, pressure=f.pressure,
                     target_pressure=f.target_pressure, flow_rate=f.flow_rate,
                     volume=f.volume, weight=f.weight, flow_weight=f.flow_weight,
-                    temperature=f.temperature, setpoint=f.setpoint))
+                    temperature=f.temperature, setpoint=f.setpoint,
+                    pump_phase=f.pump_phase, flow_target=f.flow_target,
+                    pressure_min=f.pressure_min, pressure_max=f.pressure_max))
             if pump and f.pressure is not None and f.pressure > self.shot_pressure:
                 run.kind = SHOT
         return done

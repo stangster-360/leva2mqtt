@@ -38,6 +38,11 @@ RETRY_S = 2.0
 KEEPALIVE_S = 5.0
 WATCHDOG_S = 3.0
 RESEND_S = 5.0
+# The ito accepts at most 4 connections on port 23 (ito manual). How it turns away a fifth
+# one is not captured (unverified). Heuristic: this many connections in a row that end
+# without a single byte (refused, closed at once, or silent until the watchdog) -> "all
+# connection slots may be in use". The TCP side answering shows the module is powered.
+EMPTY_CONNECTIONS_FOR_SLOTS_FULL = 3
 SWITCH_GRACE_S = 1.5   # frames of the old mode may still arrive after a switch (0.1-0.5 s seen)
 _DUMP_RE = re.compile(r"^(\|.*|[A-Z][\w ]*\.\.\.\s*)$")   # setup dump lines (after MCu)
 
@@ -90,6 +95,10 @@ class Link:
         self._last_frame = 0.0
         self._last_rx = 0.0
         self._stop = asyncio.Event()
+        self.on_slots: Optional[Callable[[bool], None]] = None
+        self.slots_full = False
+        self._empty = 0          # connections in a row without a single byte
+        self._session_rx = 0
 
     @property
     def up(self) -> bool:
@@ -128,6 +137,10 @@ class Link:
                 reader, writer = await asyncio.wait_for(
                     asyncio.open_connection(self.host, self.port), CONNECT_TIMEOUT_S)
             except (OSError, asyncio.TimeoutError) as e:
+                if isinstance(e, ConnectionRefusedError):
+                    self._empty_connection()
+                else:
+                    self._empty = 0      # unreachable: the module is off, not full
                 if self._offline_since is None:
                     self._offline_since = self.clock()
                     log.info("module %s:%s unreachable (%s), retrying every %.0f s",
@@ -136,6 +149,7 @@ class Link:
                 continue
             log.info("connected to %s:%s", self.host, self.port)
             self._writer = writer
+            self._session_rx = 0
             try:
                 await self._session(reader, writer)
             except (OSError, asyncio.IncompleteReadError, ConnectionError) as e:
@@ -148,6 +162,8 @@ class Link:
                 except (OSError, asyncio.TimeoutError):
                     pass
                 self._set_down()
+                if self._session_rx == 0 and not self._stop.is_set():
+                    self._empty_connection()
             if not self._stop.is_set():
                 await self._sleep(RETRY_S)
 
@@ -167,8 +183,24 @@ class Link:
             # module that is still booting: count as offline from now on
             self._offline_since = self.clock()
 
+    def _empty_connection(self) -> None:
+        self._empty += 1
+        if self._empty >= EMPTY_CONNECTIONS_FOR_SLOTS_FULL and not self.slots_full:
+            self.slots_full = True
+            log.warning("%d connections in a row ended without any data: the module may "
+                        "have all 4 connection slots in use (other apps, stale sessions; "
+                        "they time out after 5 min idle)", self._empty)
+            if self.on_slots:
+                self.on_slots(True)
+
     def _came_up(self, now: float) -> None:
         self._last_frame = now
+        self._empty = 0
+        if self.slots_full:
+            self.slots_full = False
+            log.info("connection slot available again")
+            if self.on_slots:
+                self.on_slots(False)
         if not self._up:
             self._up = True
             offline = self._offline_since
@@ -199,6 +231,7 @@ class Link:
                 raise ConnectionError("closed by module")
             if chunk:
                 self._last_rx = now
+                self._session_rx += len(chunk)
                 buf += chunk
                 *lines, buf = buf.split(b"\n")
                 for raw in lines:
