@@ -47,6 +47,7 @@ class TelegramConfig:
     token: str = ""                 # empty = notifications disabled
     chat_id: str = ""
     notify: bool = True             # default for the runtime switch
+    language: str = "en"            # message language: en, de
 
 
 @dataclass
@@ -169,6 +170,9 @@ def load(path: Optional[str] = None, environ=None) -> Config:
 
     if not cfg.machine.host:
         raise ConfigError("machine.host (MACHINE_HOST) is required")
+    cfg.telegram.language = cfg.telegram.language.strip().lower() or "en"
+    if cfg.telegram.language not in ("en", "de"):
+        raise ConfigError(f"telegram.language: {cfg.telegram.language!r} is not one of en, de")
     cfg.machine.id = slug(cfg.machine.id or cfg.machine.name)
     if not cfg.mqtt_enabled and not cfg.visualizer_enabled and not cfg.telegram_enabled \
             and not cfg.shots.directory:

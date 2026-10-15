@@ -60,6 +60,7 @@ Every key `<section>.<key>` can be set as environment variable `<SECTION>_<KEY>`
 | `visualizer.coffee_bags_refresh` | 1800 | s between reloads of the coffee bag list; 0 = no coffee bag entity |
 | `telegram.token`, `chat_id` | – | |
 | `telegram.notify` | true | start value of the switch entity |
+| `telegram.language` | en | message language, `en` or `de` |
 | `shots.directory` | /data/shots | queue (`pending/`) and archive; empty = queue in memory only, lost on restart |
 | `shots.keep` | false | keep the shot file after a successful Visualizer upload |
 | `shots.dose` | 18.0 | start value of the dose entity, g |
@@ -292,6 +293,29 @@ past shots as dropdown suggestions, and the API does not offer them. So the grin
 come from `shots.grinders`. The chosen one goes into each shot as `grinder_model`
 (Visualizer then adds it to its suggestions) and into the Telegram message. The grind
 setting stays a text entity.
+
+## Telegram message
+
+Sent with `parse_mode=HTML`, link preview off. Lines without a value are left out
+(no scale → volume instead of weight; no bag, bean or grinder → no coffee lines; upload
+not done yet → no link). Names from Visualizer and the configuration are HTML-escaped.
+Example (`telegram.language: de`):
+
+```
+☕ <b>Silvia</b> · Shot fertig
+
+⏱ <b>21 s</b> · <b>42,3 g</b> aus 18,0 g (1:2,3)
+📈 Spitze <b>7,7 bar</b>   💧 erster Tropfen nach 9 s
+🌡 Kessel 90,8 °C beim Start
+
+🫘 CUERPO – Südhang
+⚙️ DF64 · 2,6
+
+📊 <a href="https://visualizer.coffee/shots/…">Auf Visualizer ansehen</a>
+```
+
+A message sent more than 2 min after the shot names its time in the first line
+(`Shot von 16:05 (verspätet gesendet)` / `Shot from 16:05 (sent late)`).
 
 ## MQTT topics
 

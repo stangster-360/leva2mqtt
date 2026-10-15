@@ -30,6 +30,7 @@ telegram:                   # leave empty to disable messages
   token: ""                 # bot token from @BotFather
   chat_id: ""
   notify: true              # start value of the "Telegram shot message" switch
+  language: en              # message language: en or de
 
 shots:
   directory: /data/shots    # queue (pending/) and archive; empty = memory only, lost on restart

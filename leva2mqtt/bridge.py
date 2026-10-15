@@ -404,7 +404,8 @@ class Bridge:
 
     async def _send_telegram(self, e: Entry) -> dict:
         url = e.delivery.get("visualizer", {}).get("url")
-        text = telegram.format_shot(e.record, self.cfg.machine.name, url)
+        text = telegram.format_shot(e.record, self.cfg.machine.name, url,
+                                    language=self.cfg.telegram.language)
         await asyncio.to_thread(telegram.send, self.cfg.telegram.token,
                                 self.cfg.telegram.chat_id, text)
         return {}

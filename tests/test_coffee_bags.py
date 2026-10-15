@@ -124,7 +124,7 @@ def test_telegram_names_the_bag():
     rec = {"start": "2026-10-13T10:00:00+00:00", "coffee_bag": "Kenia – K", "bean": "free text",
            "grinder_setting": "12"}
     text = telegram.format_shot(rec, "Silvia", now=0)
-    assert "Kenia – K, grinder 12" in text and "free text" not in text
+    assert "🫘 Kenia – K" in text and "⚙️ 12" in text and "free text" not in text
 
 
 # --- grinders (from the configuration; Visualizer has no grinder API) ---------
@@ -154,7 +154,7 @@ def test_bridge_grinder_setting_and_shot_json():
     assert data["app"]["data"]["settings"]["grinder_model"] == "DF64"
     text = telegram.format_shot({"start": "2026-10-13T10:00:00+00:00", "grinder": "DF64",
                                  "grinder_setting": "12"}, "Silvia", now=0)
-    assert "grinder DF64 12" in text
+    assert "⚙️ DF64 · 12" in text
 
 
 def test_empty_text_settings_show_none():
