@@ -72,7 +72,7 @@ Every key `<section>.<key>` can be set as environment variable `<SECTION>_<KEY>`
 | `bridge.alert_interval` | 300 s | see "Maintenance alerts" |
 | `bridge.other_client_quiet` | 180 s | see "Other client" |
 | `capture.enabled` | false | raw capture of the telnet stream, see "Raw capture" |
-| `capture.directory` | /data/captures | |
+| `capture.directory` | /data/captures | one file per switch-on |
 | `capture.keep_days` | 7 | files older than this are deleted |
 | `log_level` | INFO | |
 
@@ -371,33 +371,34 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
 
 ## Raw capture
 
-With `capture.enabled` the bridge records everything it exchanges with the module,
-continuously, in the format of `tools/capture.py` – so `replay.py`, `fake_ito.py` and
-the analysis of a problem work on it directly, without a separate capture session.
+With `capture.enabled` the bridge records everything it exchanges with the module in
+the format of `tools/capture.py` – so `replay.py`, `fake_ito.py` and the analysis of a
+problem work on normal operation, without a separate capture session.
 
-- One file per local day: `<directory>/<YYYY-MM-DD>_bridge.txt`, appended to after a
-  restart. Files of earlier days are gzip-compressed, files older than `keep_days` are
-  deleted (checked at start and at midnight).
+- **One file per switch-on:** a file starts when the connection to the module comes up
+  and ends when it is lost – with the machine on a smart plug, one file from switching
+  on to switching off. Name `<directory>/<YYYY-MM-DD>_<HHMMSS>_bridge.txt` (start, local
+  time). A reconnect within 60 s (WLAN hiccup, watchdog) continues the same file; a
+  connection longer than 24 h (module powered all the time) starts a new file.
+- Plain text, no compression. Files older than `keep_days` are deleted when a new file
+  starts. Nothing is written while the machine is unreachable.
 - Content: every line received (`MCr` frames, display frames of the alert polls,
-  heartbeats, replies), and `#` event lines: connect / lost / unreachable, every command
-  sent (`# >> MCr`), the bridge's decisions (`# bridge: state brewing`,
-  `# bridge: power mode ECO -> PID`, `# bridge: run {…}` with the shot record), buttons,
-  bridge start / stop.
+  heartbeats, replies), and `#` event lines: connected / lost, every command sent
+  (`# >> MCr`), the bridge's decisions (`# bridge: state brewing`,
+  `# bridge: power mode ECO -> PID`, `# bridge: run {…}` with the shot record), buttons.
 - Button **Mark capture** (diagnostic, only with `capture.enabled`) writes
   `# mark (button in Home Assistant)` – for "the ready beep came now" or "this shot
-  looked wrong", instead of typing a note in `capture.py`.
+  looked wrong". Outside a connection there is no file and the mark is dropped.
 - Recording is passive: it sends nothing and does not change the bridge's behaviour.
   A write error (disk full, no permission) disables it with one warning in the log.
-- Size: an `MCr` frame is ~300 bytes at 4/s, about 100 MB per day while the module is
-  powered (standby included), much less compressed (factor not measured). With the
-  machine on the Shelly only while in use, much less.
+- Size: an `MCr` frame is ~300 bytes at 4/s, about 4 MB per hour the machine is on.
 - Not covered: whatever needs another report mode or another client – a shot in
   display mode (playbook scenario 12) or a fifth connection. Whether the machine beeped
   is only in the capture if someone presses **Mark capture**.
 
 Fetching from the test LXC to a Mac: `tools/fetch-captures.sh` (see the script header;
 defaults: Proxmox host `root@10.10.10.30`, CT 103, volume `leva2mqtt-test_data`, target
-`~/Silvia/captures/bridge`). `gunzip -k` a `.txt.gz` before replaying it.
+`~/Silvia/captures/bridge`).
 
 ## Not done yet
 

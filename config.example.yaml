@@ -49,8 +49,8 @@ bridge:                     # detection thresholds – all unverified, see docs/
   other_client_quiet: 180   # s without activity of another client (Leva Companion) before MCr again
 
 capture:                    # raw recording of the telnet stream (debugging, protocol work)
-  enabled: false            # one file per day in capture.py format, see docs/bridge.md
-  directory: /data/captures # earlier days gzip-compressed
+  enabled: false            # capture.py format, one file per switch-on, see docs/bridge.md
+  directory: /data/captures
   keep_days: 7              # older files are deleted
 
 log_level: INFO

@@ -99,7 +99,7 @@ class Link:
         self.slots_full = False
         self._empty = 0          # connections in a row without a single byte
         self._session_rx = 0
-        self.tap = None          # RawLog: every received line, sent commands, connection events
+        self.tap = None          # RawLog: one file per connection (lines, commands, events)
 
     @property
     def up(self) -> bool:
@@ -147,10 +147,11 @@ class Link:
                     self._offline_since = self.clock()
                     log.info("module %s:%s unreachable (%s), retrying every %.0f s",
                              self.host, self.port, e.__class__.__name__, RETRY_S)
-                    self._note(f"unreachable ({e.__class__.__name__})")
                 await self._sleep(RETRY_S)
                 continue
             log.info("connected to %s:%s", self.host, self.port)
+            if self.tap:
+                self.tap.start(self.clock())
             self._note(f"connected to {self.host}:{self.port}")
             self._writer = writer
             self._session_rx = 0
@@ -160,13 +161,17 @@ class Link:
                 log.info("connection lost: %s", e)
                 self._note(f"connection lost ({e})")
             finally:
+                if self._stop.is_set():
+                    self._note("connection closed (bridge stopping)")
                 self._writer = None
                 writer.close()
                 try:
                     await asyncio.wait_for(writer.wait_closed(), 1.0)
                 except (OSError, asyncio.TimeoutError):
                     pass
-                self._set_down()
+                self._set_down()          # the bridge's notes on "machine lost" still go in
+                if self.tap:
+                    self.tap.end(self.clock())
                 if self._session_rx == 0 and not self._stop.is_set():
                     self._empty_connection()
             if not self._stop.is_set():

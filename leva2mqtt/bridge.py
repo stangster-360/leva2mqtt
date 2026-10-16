@@ -98,7 +98,6 @@ class Bridge:
         outbox = loop.create_task(self.outbox.run())
         log.info("leva2mqtt started: machine %s:%s, outputs: %s", self.cfg.machine.host,
                  self.cfg.machine.port, ", ".join(self._outputs()) or "none")
-        self._note("bridge started")
         try:
             await self.link.run()
         finally:
@@ -117,7 +116,6 @@ class Bridge:
                 log.warning("delivery still running at shutdown, retried on next start")
             if self.mqtt:
                 self.mqtt.stop()
-            self._note("bridge stopped")
             if self.rawlog:
                 self.rawlog.close()
             log.info("stopped")

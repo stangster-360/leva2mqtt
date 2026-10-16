@@ -42,7 +42,7 @@ Off: `systemctl disable --now leva2mqtt-update.timer`.
 
 ## Captures and shot files
 
-The bridge records the telnet stream continuously in the test stack
+The bridge records the telnet stream in the test stack, one file per switch-on
 (`CAPTURE_ENABLED=true`, 7 days, `docs/bridge.md` → "Raw capture"). Files live in the
 `data` volume (`/data/captures` in the container). From the Mac:
 

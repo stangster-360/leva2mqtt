@@ -4,7 +4,7 @@ The parser can only be as good as the captures it was built from. This page cont
 the tool, the capture playbook we use to map the protocol, and what each scenario is
 meant to answer. Results go into [protocol.md](protocol.md).
 
-The bridge itself can record continuously (`capture.enabled`, on in the test stack,
+The bridge itself can record every switch-on (`capture.enabled`, on in the test stack,
 see [bridge.md](bridge.md#raw-capture)). Most scenarios below then come from normal
 use; a separate session with `capture.py` is only needed for what the bridge does not
 do itself (display mode during a shot, a second or fifth client, `--first-frame` tests).

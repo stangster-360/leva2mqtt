@@ -73,7 +73,7 @@ class BridgeConfig:
 @dataclass
 class CaptureConfig:
     enabled: bool = False           # record the raw telnet stream (debugging, protocol work)
-    directory: str = "/data/captures"   # one file per day, earlier days gzip-compressed
+    directory: str = "/data/captures"   # one file per connection (switch-on to switch-off)
     keep_days: int = 7              # files older than this are deleted
 
 

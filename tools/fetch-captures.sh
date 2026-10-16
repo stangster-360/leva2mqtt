@@ -7,7 +7,7 @@
 # captures/ folder of the bridge's data volume and unpack it here. Works while the
 # bridge is stopped as well. Settings via environment:
 #   PROXMOX_HOST (root@10.10.10.30), CTID (103), VOLUME (leva2mqtt-test_data)
-# Earlier days arrive as .txt.gz: `gunzip -k <file>` before replay.py / fake_ito.py.
+# One file per switch-on (<date>_<time>_bridge.txt), plain text, ready for replay.py.
 set -euo pipefail
 
 HOST=${PROXMOX_HOST:-root@10.10.10.30}
