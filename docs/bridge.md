@@ -133,7 +133,7 @@ soon as frames arrive, is **unverified**.
 | steam | boiler ≥ 100 °C while the setpoint is below; ends below 99 °C | threshold **unverified** |
 | hot_water | flow meter counter rises ≥ 5 ml without `*`, ends after 3 s without change | **seen** (one capture) |
 | ready | see "Ready" below | **unverified** (2 hits) |
-| heating | more than 1.5 K below the setpoint | **seen** |
+| heating | more than 1.5 K below the setpoint; ends only above setpoint − 1.0 K (hysteresis: without it, sensor noise at the edge flapped heating/idle several times a second, seen 16.10.) | **seen** |
 | idle | awake, none of the above | |
 
 ## Ready

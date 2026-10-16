@@ -35,6 +35,8 @@ class Settings:
     """Thresholds; the defaults rest on single captures and are unverified."""
 
     heating_margin: float = 1.5     # K below setpoint = heating (seen)
+    heating_hysteresis: float = 0.5 # K: heating ends only above setpoint - margin + this
+                                    # (16.10.: sensor noise at the edge flapped heating/idle)
     at_temp_band: float = 0.5       # K around the setpoint = boiler at temperature
     ready_spread: float = 1.0       # %-points: last three per-minute heater averages (2 hits)
     ready_samples: int = 3
@@ -100,6 +102,7 @@ class Tracker:
         self._update_ready(f, t)
 
         temp, sp = f.temperature, f.setpoint
+        was_heating = self.state == HEATING
         if self._pump_on:
             self.state = BREWING
         elif self.steam:
@@ -108,7 +111,8 @@ class Tracker:
             self.state = HOT_WATER
         elif self.ready:
             self.state = READY
-        elif temp is not None and sp is not None and temp < sp - self.s.heating_margin:
+        elif temp is not None and sp is not None and temp < sp - self.s.heating_margin + (
+                self.s.heating_hysteresis if was_heating else 0.0):
             self.state = HEATING
         else:
             self.state = IDLE

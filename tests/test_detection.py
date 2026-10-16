@@ -306,3 +306,17 @@ def test_record_follows_ignore_flood_switch():
     assert (rec["duration"], rec["pump_time"], rec["timer"]) == (14.0, 15.0, "profile")
     # the curve keeps the whole pump run
     assert to_decent_json(shot)["elapsed"][0] == 0.0
+
+
+def test_heating_has_hysteresis():
+    # 16.10.: boiler hovering at setpoint - 1.5 K with 0.05-0.1 K noise flapped
+    # heating/idle several times a second; heating now ends only above setpoint - 1.0 K
+    tr = Tracker()
+    t = 0.0
+    states = []
+    for temp in (89.0, 88.55, 88.4, 88.55, 88.4, 88.6, 88.9, 88.95, 89.05, 88.9):
+        tr.update(parse(frame(temp=temp, heater_avg=None)), t)
+        states.append(tr.state)
+        t += 0.25
+    assert states == ["idle", "idle", "heating", "heating", "heating", "heating",
+                      "heating", "heating", "idle", "idle"]
