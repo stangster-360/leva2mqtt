@@ -179,7 +179,9 @@ Does the module accept the report command as soon as frames arrive after power-o
 ### 12. Shot in display mode – `shot-display` – ~2 min
 
 Does the firmware's shot timer count during a shot, and from when (pump start,
-pressure rise, first drop)? A flush is not timed (seen).
+pressure rise, first drop)? A flush is not timed (seen). Mostly answered by the bridge
+captures of 16.10.2026 (timer starts with the profile, ~1 s after the pump, see
+protocol.md); only needed to confirm.
 1. `capture.py <ip> shot-display --mode display`, pull a normal shot, note
    `# first drop`, read the shot time off the display afterwards: `# display 17s`, `q`.
 

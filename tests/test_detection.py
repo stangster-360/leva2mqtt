@@ -189,6 +189,22 @@ def test_shot_and_flush():
     assert flush.kind == FLUSH
 
 
+def test_curve_ends_at_pump_stop_yield_includes_drip():
+    # seen 16.10.2026: pressure at the sensor stays at ~5 bar after the pump stop
+    # (boiler sealed off), drip into the cup ends 1-2 s later
+    from leva2mqtt.visualizer import extra_series, to_decent_json
+    rec = ShotRecorder(tail=5)
+    shot = run_shot(rec, [0.5] * 36 + [8.0] * 40, [0.0] * 36 + [w * 0.5 for w in range(40)])
+    assert len(shot.samples) > len(shot.curve)
+    assert shot.curve[-1].t == shot.duration and not shot.curve[-1].pump
+    data = to_decent_json(shot)
+    assert data["elapsed"][-1] == round(shot.duration, 3)
+    assert len(data["pressure"]["pressure"]) == len(data["elapsed"])
+    assert data["app"]["data"]["settings"]["drink_weight"] == str(round(shot.yield_g, 1))
+    extra = extra_series(shot)
+    assert extra is None or all(len(v) == len(data["elapsed"]) for v in extra.values())
+
+
 def test_config_env_overrides(tmp_path):
     p = tmp_path / "config.yaml"
     p.write_text("machine:\n  host: 10.0.0.5\n  name: My Silvia\nmqtt:\n  host: broker\n")

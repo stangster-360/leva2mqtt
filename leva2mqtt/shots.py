@@ -52,6 +52,21 @@ class Run:
     flow_weight_avg: Optional[float] = None
 
     @property
+    def curve(self) -> list[Sample]:
+        """Samples up to the pump stop, for the exported shot curve.
+
+        The run keeps recording for `tail` seconds after the pump stopped so the drip is
+        included in the yield. Those samples are not part of the curve: the duration
+        shown by Visualizer is the length of the curve and must equal `duration` (the
+        pump time, as in Telegram and MQTT). After the pump stop the pressure sensor,
+        which sits between pump and boiler, reads the boiler sealed off by the three-way
+        valve, and the flow meter holds its last rate for a while (docs/protocol.md).
+        """
+        if not self.duration:
+            return list(self.samples)
+        return [s for s in self.samples if s.t <= self.duration + 1e-6]
+
+    @property
     def started_at(self) -> datetime:
         return datetime.fromtimestamp(self.start, timezone.utc)
 
@@ -81,8 +96,9 @@ def _max(values):
 class ShotRecorder:
     """Feed every frame to update(); it returns a finished Run when one is complete.
 
-    A run starts when '*' is set and ends when it is cleared. The record is closed
-    `tail` seconds later so the drip into the cup is included in the yield.
+    A run starts when '*' is set and ends when it is cleared; `duration` is this pump
+    time. The record is closed `tail` seconds later so the drip into the cup is included
+    in the yield; the exported curve still ends at the pump stop (`Run.curve`).
     """
 
     def __init__(self, tail: float = 5.0, shot_pressure: float = 3.0,

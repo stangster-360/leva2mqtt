@@ -39,7 +39,9 @@ def _series(values, scale=1.0, nd=2):
 def to_decent_json(run: Run, dose: Optional[float] = None, bean: Optional[str] = None,
                    grinder_setting: Optional[str] = None,
                    grinder_model: Optional[str] = None) -> dict:
-    s = run.samples
+    # curve ends at the pump stop, so Visualizer's duration equals run.duration;
+    # drink_weight still comes from the whole record including the drip (run.yield_g)
+    s = run.curve
     data: dict = {
         "version": 2,
         "timestamp": int(run.start),
@@ -83,7 +85,7 @@ def to_decent_json(run: Run, dose: Optional[float] = None, bean: Optional[str] =
 
 def extra_series(run: Run) -> Optional[dict]:
     """Series Visualizer has no place for; kept in the shot file only (not uploaded)."""
-    s = run.samples
+    s = run.curve
     out = {}
     for key in ("pump_phase", "pressure_min", "pressure_max"):
         if any(getattr(x, key) is not None for x in s):

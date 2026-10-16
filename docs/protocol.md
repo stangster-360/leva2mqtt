@@ -326,6 +326,33 @@ Not decoded yet: position 3 (see above). 284–288 hold the checksum `~ XX` and 
 There is **no shot timer** in the rich frame. Shot duration has to be measured by the
 client from the `*` flag and its own clock.
 
+**Shot timer on the display.** It shows less than the `*` time: 14 s for 15.6 s and 32 s
+for 33.5 s (two shots 16.10., plus 15 s for ~16.7 s on 15.10.), **seen**. Both match the
+time from the first frame with a target pressure (~1.0 s after the pump start, when the
+flood pressure is reached and the profile begins) to the last frame with `*`, cut to
+whole seconds (14.35 → 14, 32.22 → 32). The firmware manual (shot timer menu, "Ignore
+flood") describes exactly this start. Whether that option is set on M.'s machine is
+**unverified**.
+
+**Pressure after the pump stops.** The sensor sits in the cold line between pump and
+boiler (ito installation manual; M.'s Silvia confirmed, 16.10.). When the pump stops, the
+three-way valve vents the group to the drip tray and closes the boiler, so the sensor
+reads the boiler sealed between the pump's check valve and the valve. **seen** (two shots
+16.10.): the drip ends after 1–2 s, while the sensor drops only to 4–5.3 bar, rises again
+while the heater runs (4.0 → 5.3 bar in 8 s; the manual: "heating generates pressure,
+too"), sinks by ~1.5 bar in 100 s and collapses to ~1.8 bar when the next run opens the
+valve. Treat the pressure as brew pressure only while `*` is set.
+
+**Flow meter rate after the pump stops.** The rate field holds its last value after the
+volume has stopped rising, then falls in steps: 96 → 0 ml/min after ~1.5 s (shot 1),
+93 → 28 → 0 ml/min after ~1.25 s and ~1.5 s (shot 2), volume unchanged. **seen**.
+Consistent with the interpolation the developer describes; the timeout itself is
+**unverified**.
+
+**Pump phase angle (212–214).** 0° = full power, 180° = off (firmware manual). In both
+shots of 16.10. it stayed at 0 until the measured pressure reached the target, then the
+controller took over (55–76°). **seen**, **dev**.
+
 According to the developer, the flow meter delivers only 1–2 pulses per second during
 an espresso and the rate is interpolated in between – weight is the more reliable
 measure. **dev**

@@ -82,7 +82,8 @@ The class is therefore `flush` at first and becomes `shot` when the pressure cro
 
 Shot record (published when `*` has been `-` for 5 s, to catch the drip):
 
-- start/end time from the `*` flag and the bridge clock, duration
+- start/end time from the `*` flag and the bridge clock, duration = pump time; the
+  exported curve ends at the pump stop (decision 16.10.2026, docs/bridge.md)
 - yield: maximum of `f[226:231]` (scale) until 5 s after the end; without a scale the
   flow meter volume `f[152:155]`, which reads ~6 % low
 - peak pressure, average flow (`f[231:236]` or from volume), start/end temperature

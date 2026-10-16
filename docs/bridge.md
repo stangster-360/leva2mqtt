@@ -202,6 +202,17 @@ Switching straight back to `MCr` would break the app's display, so the bridge:
 
 Every `*` period is a run, closed 5 s after `*` ends so the drip is part of the yield.
 
+**Duration and curve (decision M., 16.10.2026).** The shot duration is the pump time:
+from the first frame with `*` to the first frame without it. Telegram, MQTT ("last shot
+duration") and Visualizer show the same value. The curve in the shot file, and so the
+duration Visualizer shows (the length of `elapsed`), ends at that pump-stop frame. The
+5 s tail is only recorded for the yield: `drink_weight` is the maximum weight including
+the drip. Reasons (**seen**, two shots 16.10.): the drip ends 1–2 s after the pump stop;
+after the stop the pressure sensor reads the sealed-off boiler, not the brew pressure,
+and the flow meter rate holds its last value for 1–3 s (docs/protocol.md). The
+firmware's display timer is not reproduced; it starts later (see protocol.md, "Shot
+timer").
+
 | Class | Rule | Status |
 |---|---|---|
 | shot | brew pressure above 3 bar while `*` | **seen** (3 runs) |
@@ -342,7 +353,8 @@ Sensors appear through MQTT discovery **only after their value has been seen in 
 frame**, so a machine without scale or flow meter gets no weight or flow entities.
 
 - Sensors: state, boiler temperature, setpoint, heater output, heater output last
-  minute, brew pressure, target pressure, weight, flow by weight, flow meter rate,
+  minute, brew pressure (outside a pump run this is the pressure of the sealed boiler,
+  typically 4–5 bar after a shot, not a fault – see protocol.md), target pressure, weight, flow by weight, flow meter rate,
   flow meter volume, control mode, profile, pump time (running time of the `*` flag,
   else the last run; the bridge's own clock), heater average spread (diagnostic,
   attribute `heater_averages` = the last three per-minute averages; ready needs a spread
