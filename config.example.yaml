@@ -48,4 +48,9 @@ bridge:                     # detection thresholds – all unverified, see docs/
   alert_interval: 300       # s between alert polls (display mode for ~1 s, only while idle)
   other_client_quiet: 180   # s without activity of another client (Leva Companion) before MCr again
 
+capture:                    # raw recording of the telnet stream (debugging, protocol work)
+  enabled: false            # one file per day in capture.py format, see docs/bridge.md
+  directory: /data/captures # earlier days gzip-compressed
+  keep_days: 7              # older files are deleted
+
 log_level: INFO

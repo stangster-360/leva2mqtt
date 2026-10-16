@@ -71,6 +71,9 @@ Every key `<section>.<key>` can be set as environment variable `<SECTION>_<KEY>`
 | `bridge.steam_threshold` | 100 °C | |
 | `bridge.alert_interval` | 300 s | see "Maintenance alerts" |
 | `bridge.other_client_quiet` | 180 s | see "Other client" |
+| `capture.enabled` | false | raw capture of the telnet stream, see "Raw capture" |
+| `capture.directory` | /data/captures | |
+| `capture.keep_days` | 7 | files older than this are deleted |
 | `log_level` | INFO | |
 
 ## Connection
@@ -358,12 +361,43 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
 - Binary sensors: pump, heating up, boiler at temperature, ready, steam mode, hot water,
   maintenance alert (problem), other client connected (diagnostic), connection slots
   full (diagnostic, problem)
+- Button **Mark capture** (diagnostic), only with `capture.enabled`
 - Buttons: wake (`MCa`), eco (`MCe`), standby (`MCE`), beep setpoint
 - Settings: dose (number); grinder setting (text); bean (text, only while Visualizer
   has no coffee bags) or coffee bag (select, only with bags on Visualizer) and a button
   to reload them; grinder (select, only with `shots.grinders`); Visualizer upload and
   Telegram message (switches, only when configured). Empty text entities show "None";
   entering "None" clears them.
+
+## Raw capture
+
+With `capture.enabled` the bridge records everything it exchanges with the module,
+continuously, in the format of `tools/capture.py` – so `replay.py`, `fake_ito.py` and
+the analysis of a problem work on it directly, without a separate capture session.
+
+- One file per local day: `<directory>/<YYYY-MM-DD>_bridge.txt`, appended to after a
+  restart. Files of earlier days are gzip-compressed, files older than `keep_days` are
+  deleted (checked at start and at midnight).
+- Content: every line received (`MCr` frames, display frames of the alert polls,
+  heartbeats, replies), and `#` event lines: connect / lost / unreachable, every command
+  sent (`# >> MCr`), the bridge's decisions (`# bridge: state brewing`,
+  `# bridge: power mode ECO -> PID`, `# bridge: run {…}` with the shot record), buttons,
+  bridge start / stop.
+- Button **Mark capture** (diagnostic, only with `capture.enabled`) writes
+  `# mark (button in Home Assistant)` – for "the ready beep came now" or "this shot
+  looked wrong", instead of typing a note in `capture.py`.
+- Recording is passive: it sends nothing and does not change the bridge's behaviour.
+  A write error (disk full, no permission) disables it with one warning in the log.
+- Size: an `MCr` frame is ~300 bytes at 4/s, about 100 MB per day while the module is
+  powered (standby included), much less compressed (factor not measured). With the
+  machine on the Shelly only while in use, much less.
+- Not covered: whatever needs another report mode or another client – a shot in
+  display mode (playbook scenario 12) or a fifth connection. Whether the machine beeped
+  is only in the capture if someone presses **Mark capture**.
+
+Fetching from the test LXC to a Mac: `tools/fetch-captures.sh` (see the script header;
+defaults: Proxmox host `root@10.10.10.30`, CT 103, volume `leva2mqtt-test_data`, target
+`~/Silvia/captures/bridge`). `gunzip -k` a `.txt.gz` before replaying it.
 
 ## Not done yet
 
@@ -378,6 +412,7 @@ frame**, so a machine without scale or flow meter gets no weight or flow entitie
   states, beeps and runs.
 - `tools/monitor.py <ito-ip>` – live view of all decoded fields and the ready decision,
   see [monitor.md](monitor.md).
+- `tools/fetch-captures.sh` – copy the bridge's raw captures from the test LXC to the Mac.
 - `tools/fake_ito.py <capture> --port 2300` – serve a capture as a fake module; start
   the bridge with `MACHINE_HOST=127.0.0.1 MACHINE_PORT=2300`.
 - `python -m pytest tests` – unit tests with synthetic frames.

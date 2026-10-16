@@ -40,6 +40,20 @@ running, rebuilds and restarts the running services (with the fake module if it 
 Log: `journalctl -u leva2mqtt-update`. Manual: `systemctl start leva2mqtt-update`.
 Off: `systemctl disable --now leva2mqtt-update.timer`.
 
+## Captures and shot files
+
+The bridge records the telnet stream continuously in the test stack
+(`CAPTURE_ENABLED=true`, 7 days, `docs/bridge.md` → "Raw capture"). Files live in the
+`data` volume (`/data/captures` in the container). From the Mac:
+
+```sh
+~/Silvia/tools/fetch-captures.sh          # → ~/Silvia/captures/bridge/
+```
+
+Shot files are deleted after a successful upload; `SHOTS_KEEP=true` in `.env` keeps
+them (`/data/shots` in the same volume). On the LXC directly:
+`ls "$(docker volume inspect -f '{{.Mountpoint}}' leva2mqtt-test_data)"`.
+
 ## Limits
 
 - `fake_ito.py` only replays; it does not react to commands. The wake sequence

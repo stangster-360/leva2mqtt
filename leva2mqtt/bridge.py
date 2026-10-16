@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import signal
 import time
@@ -15,6 +16,7 @@ from .link import Link
 from .machine import (BREWING, HOT_WATER, MODE_AWAKE, MODE_ECO, OFFLINE, STEAM, Settings,
                       Tracker, WakeReporter)
 from .modes import ModeController
+from .rawlog import RawLog
 from .outbox import DONE, PENDING, Entry, Outbox, PermanentError
 from .shots import SHOT, Run, ShotRecorder
 
@@ -60,6 +62,10 @@ class Bridge:
         self.link = Link(cfg.machine.host, cfg.machine.port, self._on_frame, self._on_link,
                          on_display=self._on_display, on_foreign=self._on_foreign)
         self.link.on_slots = self._on_slots
+        self.rawlog: Optional[RawLog] = None
+        if cfg.capture.enabled and cfg.capture.directory:
+            self.rawlog = RawLog(cfg.capture.directory, cfg.capture.keep_days)
+            self.link.tap = self.rawlog
         self.mqtt = None
         self._last_publish = 0.0
         self._last_state: Optional[str] = None
@@ -92,6 +98,7 @@ class Bridge:
         outbox = loop.create_task(self.outbox.run())
         log.info("leva2mqtt started: machine %s:%s, outputs: %s", self.cfg.machine.host,
                  self.cfg.machine.port, ", ".join(self._outputs()) or "none")
+        self._note("bridge started")
         try:
             await self.link.run()
         finally:
@@ -110,6 +117,9 @@ class Bridge:
                 log.warning("delivery still running at shutdown, retried on next start")
             if self.mqtt:
                 self.mqtt.stop()
+            self._note("bridge stopped")
+            if self.rawlog:
+                self.rawlog.close()
             log.info("stopped")
 
     def _outputs(self) -> list[str]:
@@ -122,10 +132,18 @@ class Bridge:
             out.append("telegram")
         if self.cfg.shots.grinders:
             out.append("grinders " + ", ".join(self.cfg.shots.grinders))
+        if self.rawlog:
+            out.append(f"raw capture ({self.cfg.capture.directory}, "
+                       f"{self.cfg.capture.keep_days} days)")
         if self.cfg.shots.directory:
             out.append(f"shot files ({self.cfg.shots.directory}, "
                        f"{'keep' if self.cfg.shots.keep else 'delete'} after upload)")
         return out
+
+    def _note(self, text: str) -> None:
+        """Bridge decision or event in the raw capture (if enabled)."""
+        if self.rawlog:
+            self.rawlog.note(text)
 
     def _spawn(self, coro) -> asyncio.Task:
         task = asyncio.get_running_loop().create_task(coro)
@@ -170,12 +188,15 @@ class Bridge:
         if up:
             log.info("machine reachable" + (f" after {t - offline_since:.0f} s offline"
                                             if offline_since else ""))
+            self._note("bridge: machine reachable" + (f" after {t - offline_since:.0f} s offline"
+                                                       if offline_since else ""))
             self.reporter.link_up(t, offline_since)
             self.modes.link_up(t)
             if self.mqtt:
                 self.mqtt.publish_machine(True)
             return
         log.info("machine lost")
+        self._note("bridge: machine lost")
         run = self.recorder.abort()
         if run:
             self._finished(run)
@@ -210,6 +231,7 @@ class Bridge:
         change = self.tracker.update(f, t)
         if change:
             log.info("power mode %s -> %s", change[0] or "unknown", change[1])
+            self._note(f"bridge: power mode {change[0] or 'unknown'} -> {change[1]}")
             self.reporter.mode_change(change[0], change[1], t)
         if self.reporter.due(self.tracker.mode):
             self._spawn(self._send_report())
@@ -220,6 +242,7 @@ class Bridge:
         state = self.tracker.state
         if state != self._last_state:
             log.info("state %s", state)
+            self._note(f"bridge: state {state}")
         self._last_live = self._live(f, t)
         if self.mqtt and (state != self._last_state or state == BREWING
                           or self.modes.take_changed()
@@ -269,6 +292,10 @@ class Bridge:
     # --- Home Assistant input -------------------------------------------
 
     def _on_command(self, name: str) -> None:
+        if name == "capture_mark":
+            self._note("mark (button in Home Assistant)")
+            log.info("capture mark")
+            return
         if name == "refresh_coffee_bags":
             # not a machine command, so it must be handled before the COMMANDS lookup
             log.info("button %s", name)
@@ -278,6 +305,7 @@ class Bridge:
         if cmd is None:
             return
         log.info("button %s", name)
+        self._note(f"bridge: button {name}")
         if name == "report":
             self.reporter.manual_report(time.time())
             self._spawn(self._send_report())
@@ -325,6 +353,7 @@ class Bridge:
 
     def _finished(self, run: Run) -> None:
         rec = self._record(run)
+        self._note("bridge: run " + json.dumps(rec, default=str, ensure_ascii=False))
         if self.mqtt:
             self.mqtt.publish_run(rec)
         if run.kind != SHOT:

@@ -71,6 +71,13 @@ class BridgeConfig:
 
 
 @dataclass
+class CaptureConfig:
+    enabled: bool = False           # record the raw telnet stream (debugging, protocol work)
+    directory: str = "/data/captures"   # one file per day, earlier days gzip-compressed
+    keep_days: int = 7              # files older than this are deleted
+
+
+@dataclass
 class Config:
     machine: MachineConfig = field(default_factory=MachineConfig)
     mqtt: MqttConfig = field(default_factory=MqttConfig)
@@ -78,6 +85,7 @@ class Config:
     telegram: TelegramConfig = field(default_factory=TelegramConfig)
     shots: ShotsConfig = field(default_factory=ShotsConfig)
     bridge: BridgeConfig = field(default_factory=BridgeConfig)
+    capture: CaptureConfig = field(default_factory=CaptureConfig)
     log_level: str = "INFO"
 
     @property

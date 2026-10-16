@@ -99,6 +99,7 @@ class Link:
         self.slots_full = False
         self._empty = 0          # connections in a row without a single byte
         self._session_rx = 0
+        self.tap = None          # RawLog: every received line, sent commands, connection events
 
     @property
     def up(self) -> bool:
@@ -118,6 +119,7 @@ class Link:
             w.write(cmd.encode("latin-1") + b"\r\n")
             await w.drain()
             log.info(">> %s", cmd)
+            self._note(f">> {cmd}")
             return True
         except OSError as e:
             log.warning("sending %s failed: %s", cmd, e)
@@ -145,15 +147,18 @@ class Link:
                     self._offline_since = self.clock()
                     log.info("module %s:%s unreachable (%s), retrying every %.0f s",
                              self.host, self.port, e.__class__.__name__, RETRY_S)
+                    self._note(f"unreachable ({e.__class__.__name__})")
                 await self._sleep(RETRY_S)
                 continue
             log.info("connected to %s:%s", self.host, self.port)
+            self._note(f"connected to {self.host}:{self.port}")
             self._writer = writer
             self._session_rx = 0
             try:
                 await self._session(reader, writer)
             except (OSError, asyncio.IncompleteReadError, ConnectionError) as e:
                 log.info("connection lost: %s", e)
+                self._note(f"connection lost ({e})")
             finally:
                 self._writer = None
                 writer.close()
@@ -172,6 +177,10 @@ class Link:
             await asyncio.wait_for(self._stop.wait(), s)
         except asyncio.TimeoutError:
             pass
+
+    def _note(self, text: str) -> None:
+        if self.tap:
+            self.tap.note(text, self.clock())
 
     def _set_down(self) -> None:
         if self._up:
@@ -236,6 +245,8 @@ class Link:
                 *lines, buf = buf.split(b"\n")
                 for raw in lines:
                     text = raw.strip(b"\r").decode("latin-1")
+                    if self.tap:
+                        self.tap.line(now, text)
                     if text.startswith("{"):
                         frame = parse(text)
                         if frame is not None:

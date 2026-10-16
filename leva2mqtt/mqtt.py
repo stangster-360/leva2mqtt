@@ -11,7 +11,8 @@ Topics (base = <topic_prefix>/<machine id>):
   base/pending                number of shots waiting for upload / message, retained
   base/slots_full             ON when the module seems to refuse further connections
                               (all 4 slots in use, heuristic, unverified), retained
-  base/command/<button>       PRESS: wake, eco, standby, report, refresh_coffee_bags
+  base/command/<button>       PRESS: wake, eco, standby, report, refresh_coffee_bags,
+                              capture_mark
   base/settings/<key>         runtime settings, retained (restored on start)
   base/settings/<key>/set     set a runtime setting
 
@@ -208,7 +209,8 @@ class MqttOutput:
         parts = rest.split("/")
         if parts[0] == "command" and len(parts) == 2 and not retained:
             if parts[1] in BUTTONS or (parts[1] == "refresh_coffee_bags"
-                                       and self.cfg.visualizer_enabled):
+                                       and self.cfg.visualizer_enabled) \
+                    or (parts[1] == "capture_mark" and self.cfg.capture.enabled):
                 self.on_command(parts[1])
         elif parts[0] == "settings" and len(parts) == 2:
             if retained:   # restore after a restart
@@ -366,6 +368,14 @@ class MqttOutput:
         self._text("grinder_setting", "Grinder setting", "mdi:cog")
         if self._bag_options is None:      # bean or coffee bag, see _announce_bags
             self._text("bean", "Bean", "mdi:seed")
+        if self.cfg.capture.enabled:
+            self._config("button", "capture_mark", {
+                "name": "Mark capture", "icon": "mdi:bookmark-plus",
+                "entity_category": "diagnostic",
+                "command_topic": f"{self.base}/command/capture_mark",
+                "payload_press": "PRESS", **self._availability(machine=False)})
+        else:
+            self._remove("button", "capture_mark")
         if self.cfg.visualizer_enabled:
             self._config("button", "refresh_coffee_bags", {
                 "name": "Reload coffee bags", "icon": "mdi:refresh", "entity_category": "config",
