@@ -47,11 +47,11 @@ The bridge records the telnet stream in the test stack, one file per switch-on
 `data` volume (`/data/captures` in the container). From the Mac:
 
 ```sh
-~/Silvia/tools/fetch-captures.sh          # → ~/Silvia/captures/bridge/
+~/Silvia/tools/fetch-captures.sh          # → ~/Silvia/captures/bridge/ and ~/Silvia/shots/
 ```
 
 Shot files are deleted after a successful upload; `SHOTS_KEEP=true` in `.env` keeps
-them (`/data/shots` in the same volume). On the LXC directly:
+them (`/data/shots` in the same volume) and the script fetches them too. On the LXC directly:
 `ls "$(docker volume inspect -f '{{.Mountpoint}}' leva2mqtt-test_data)"`.
 
 ## Limits

@@ -396,9 +396,10 @@ problem work on normal operation, without a separate capture session.
   display mode (playbook scenario 12) or a fifth connection. Whether the machine beeped
   is only in the capture if someone presses **Mark capture**.
 
-Fetching from the test LXC to a Mac: `tools/fetch-captures.sh` (see the script header;
-defaults: Proxmox host `root@10.10.10.30`, CT 103, volume `leva2mqtt-test_data`, target
-`~/Silvia/captures/bridge`).
+Fetching from the test LXC to a Mac: `tools/fetch-captures.sh` copies the captures to
+`~/Silvia/captures/bridge` and archived shot files (with `shots.keep`) to `~/Silvia/shots`
+(see the script header; defaults: Proxmox host `root@10.10.10.30`, CT 103, volume
+`leva2mqtt-test_data`).
 
 ## Not done yet
 
@@ -413,7 +414,8 @@ defaults: Proxmox host `root@10.10.10.30`, CT 103, volume `leva2mqtt-test_data`,
   states, beeps and runs.
 - `tools/monitor.py <ito-ip>` – live view of all decoded fields and the ready decision,
   see [monitor.md](monitor.md).
-- `tools/fetch-captures.sh` – copy the bridge's raw captures from the test LXC to the Mac.
+- `tools/fetch-captures.sh` – copy the bridge's raw captures and archived shots from the
+  test LXC to the Mac.
 - `tools/fake_ito.py <capture> --port 2300` – serve a capture as a fake module; start
   the bridge with `MACHINE_HOST=127.0.0.1 MACHINE_PORT=2300`.
 - `python -m pytest tests` – unit tests with synthetic frames.
