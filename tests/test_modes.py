@@ -109,6 +109,18 @@ def test_alerts_read_while_other_client_is_active():
     assert mc.alerts == ("DSCALE",)
 
 
+def test_foreign_before_first_frame_survives_link_up():
+    # capture 16.10.2026: the app's XML= reply and setup dump came before the first
+    # frame; link_up() must not reset that, or the wake report sends MCr over the app
+    mc = ModeController()
+    mc.foreign("identify reply (XML=)", 0.1)
+    mc.link_up(3.9)
+    assert mc.other_client
+    mc.link_down()
+    mc.link_up(10.0)
+    assert not mc.other_client
+
+
 def test_foreign_cancels_poll():
     mc = ModeController(first_delay=0)
     mc.link_up(0)

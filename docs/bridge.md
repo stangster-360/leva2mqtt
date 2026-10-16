@@ -187,7 +187,9 @@ and `MC@` when it connects (seen), which switches every connection to display fr
 Switching straight back to `MCr` would break the app's display, so the bridge:
 
 - recognises the app by the `XML=` reply, the setup dump or display frames it did not
-  ask for,
+  ask for – also when these arrive before the first frame of a new connection (seen
+  16.10.2026: machine switched on, app and bridge connected at once, the dump came
+  3.8 s before the first frame),
 - stops its alert polls and does not send `MCr` on its own,
 - reads what the display shows (temperature, setpoint, heater, pressure, weight,
   standby / eco, shot screen) and keeps publishing it; no shot logging and no

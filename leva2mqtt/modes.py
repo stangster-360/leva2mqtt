@@ -67,7 +67,12 @@ class ModeController:
     # --- events ----------------------------------------------------------
 
     def link_up(self, t: float) -> None:
-        self.state = NORMAL
+        # The link reports "up" with the first frame. Another client may already have
+        # been seen on this connection before it (XML= reply and setup dump arrive
+        # first, seen 16.10.2026); link_down() resets the state, so FOREIGN here always
+        # belongs to the current connection and must be kept.
+        if self.state != FOREIGN:
+            self.state = NORMAL
         self.next_poll = t + self.first_delay
 
     def link_down(self) -> None:
