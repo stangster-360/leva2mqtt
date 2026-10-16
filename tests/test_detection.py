@@ -268,3 +268,41 @@ def test_frame_from_display_frame():
     d = parse_display("<102GEN.LEVER       1: 90.1\xdf \x04 90.0\xdf\x03             9% 0.4b-  0s 56.2g>")
     f = _frame_from_display(d)
     assert f.temperature == 90.1 and f.heater == 9 and f.weight == 56.2 and f.pid_kc is None
+
+
+def _lever_shot(rec):
+    # pump 0-15 s, target pressure from 1.0 s (flood pressure reached), drop at 5 s
+    t, done = 0.0, None
+    while t < 15.0:
+        f = frame(pump="*", pressure=0.8 if t < 4 else 7.5, target=None if t < 1.0 else 9.0,
+                  weight=0.0 if t < 5 else (t - 5) * 4, rate=300)
+        done = done or rec.update(parse(f), t)
+        t += 0.25
+    for _ in range(30):
+        done = done or rec.update(parse(frame(pump="-", pressure=5.3, weight=42.0)), t)
+        t += 0.25
+    return done
+
+
+def test_shot_time_without_flood_phase():
+    # firmware shot timer with "Ignore flood": display 14 s for 15.6 s pump time,
+    # 32 s for 33.5 s (seen 16.10.2026)
+    shot = _lever_shot(ShotRecorder(tail=5))
+    assert shot.profile_start == 1.0 and abs(shot.duration - 15.0) < 0.01
+    assert shot.timed(False) == (shot.duration, shot.first_drop)
+    duration, drop = shot.timed(True)
+    assert abs(duration - 14.0) < 0.01 and abs(drop - (shot.first_drop - 1.0)) < 0.01
+
+
+def test_record_follows_ignore_flood_switch():
+    from leva2mqtt.bridge import Bridge
+    from leva2mqtt.config import load
+    from leva2mqtt.visualizer import to_decent_json
+    b = Bridge(load("/nonexistent", {"MACHINE_HOST": "127.0.0.1", "SHOTS_DIRECTORY": "/tmp/x"}))
+    shot = _lever_shot(ShotRecorder(tail=5))
+    assert b._record(shot)["duration"] == 15.0 and "pump_time" not in b._record(shot)
+    b.settings["ignore_flood"] = True
+    rec = b._record(shot)
+    assert (rec["duration"], rec["pump_time"], rec["timer"]) == (14.0, 15.0, "profile")
+    # the curve keeps the whole pump run
+    assert to_decent_json(shot)["elapsed"][0] == 0.0

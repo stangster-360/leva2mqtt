@@ -48,7 +48,8 @@ class Bridge:
         self.reporter = WakeReporter(b.report_min_offline)
         self.recorder = ShotRecorder(tail=cfg.shots.tail)
         self.settings: dict[str, Any] = {
-            "dose": cfg.shots.dose, "bean": "", "grinder_setting": ""}
+            "dose": cfg.shots.dose, "bean": "", "grinder_setting": "",
+            "ignore_flood": cfg.shots.ignore_flood}
         if cfg.shots.grinders:
             # one grinder: preselected; several: chosen in Home Assistant
             self.settings["grinder"] = cfg.shots.grinders[0] if len(cfg.shots.grinders) == 1 else ""
@@ -331,6 +332,14 @@ class Bridge:
 
     def _record(self, run: Run) -> dict:
         rec = run.summary()
+        if run.kind == SHOT and self.settings.get("ignore_flood") and run.profile_start:
+            # like the firmware's shot timer with "Ignore flood"; the curve keeps the
+            # whole pump run (decision M., 16.10.2026)
+            duration, drop = run.timed(True)
+            rec["pump_time"] = round(run.duration, 1)
+            rec["duration"] = round(duration, 1)
+            rec["first_drop"] = None if drop is None else round(drop, 1)
+            rec["timer"] = "profile"
         dose = self.settings.get("dose") if run.kind == SHOT else None
         if dose:
             rec["dose"] = dose

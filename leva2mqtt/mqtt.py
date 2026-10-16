@@ -321,7 +321,7 @@ class MqttOutput:
             "value_template": "{{ value_json.get('yield') }}", **self._availability(machine=False)})
         self._config("sensor", "last_shot_duration", {
             "name": "Last shot duration", "state_topic": ls, "unit_of_measurement": "s",
-            "device_class": "duration", "suggested_display_precision": 0,
+            "device_class": "duration", "suggested_display_precision": 1,
             "value_template": "{{ value_json.duration }}", **self._availability(machine=False)})
         self._config("sensor", "pending", {
             "name": "Shots waiting for delivery", "icon": "mdi:tray-full",
@@ -392,7 +392,7 @@ class MqttOutput:
                 "state_topic": f"{s}/grinder", "command_topic": f"{s}/grinder/set",
                 "value_template": "{{ value if value else '%s' }}" % NO_GRINDER,
                 **self._availability(machine=False)})
-        switches = []
+        switches = [("ignore_flood", "Shot time without flood phase", "mdi:timer-sand")]
         if self.cfg.visualizer_enabled:
             switches.append(("visualizer_upload", "Upload shots to Visualizer", "mdi:cloud-upload"))
         if self.cfg.telegram_enabled:
@@ -458,7 +458,7 @@ def parse_setting(key: str, payload: str) -> Optional[Any]:
     if key == "coffee_bag":
         p = payload.strip()[:255]
         return "" if p == NO_BAG else p
-    if key in ("visualizer_upload", "telegram_notify"):
+    if key in ("visualizer_upload", "telegram_notify", "ignore_flood"):
         p = payload.strip().upper()
         return True if p in ("ON", "TRUE", "1") else False if p in ("OFF", "FALSE", "0") else None
     return None

@@ -50,6 +50,20 @@ class Run:
     temp_start: Optional[float] = None
     temp_min: Optional[float] = None
     flow_weight_avg: Optional[float] = None
+    profile_start: Optional[float] = None   # s after pump start when the profile began
+
+    def timed(self, ignore_flood: bool) -> tuple[float, Optional[float]]:
+        """(duration, first_drop) as the record shows them.
+
+        With `ignore_flood` both count from the start of the pressure profile, like the
+        firmware's shot timer with "Ignore flood" (firmware manual, shot timer menu):
+        the profile starts when the flood pressure is reached, which is the first frame
+        with a target pressure (seen 16.10.2026, matches the display in two shots).
+        Without a profile start (no target pressure) the pump time is used.
+        """
+        offset = self.profile_start if ignore_flood and self.profile_start else 0.0
+        drop = None if self.first_drop is None else max(0.0, self.first_drop - offset)
+        return max(0.0, self.duration - offset), drop
 
     @property
     def curve(self) -> list[Sample]:
@@ -151,6 +165,10 @@ class ShotRecorder:
         run.yield_g = _max(s.weight for s in run.samples)
         run.volume_ml = _max(s.volume for s in pumping)
         run.peak_pressure = _max(s.pressure for s in pumping)
+        for s in pumping:
+            if s.target_pressure is not None:
+                run.profile_start = s.t
+                break
         temps = [s.temperature for s in pumping if s.temperature is not None]
         run.temp_start = temps[0] if temps else None
         run.temp_min = min(temps) if temps else None

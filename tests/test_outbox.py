@@ -185,7 +185,7 @@ def test_telegram_text():
     de = format_shot(rec, "Silvia", "https://v/1?a=1&b=2", now=start + 30, language="de")
     assert de.splitlines() == [
         "🫘 <b>CUERPO – Südhang</b>",
-        "⏱ <b>21 s</b> · <b>42,3 g</b> aus 18,0 g (1:2,3)",
+        "⏱ <b>21,4 s</b> · <b>42,3 g</b> aus 18,0 g (1:2,3)",
         "",
         "📈 Spitze <b>7,7 bar</b>   💧 erster Tropfen nach 9 s",
         "🌡 Kessel 90,8 °C beim Start",

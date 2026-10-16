@@ -60,7 +60,7 @@ def format_shot(record: dict, machine: str, url: Optional[str] = None,
 
     parts = []
     if record.get("duration") is not None:
-        parts.append(f"<b>{record['duration']:.0f} s</b>")
+        parts.append(f"<b>{n(record['duration'])} s</b>")
     if record.get("yield") is not None:
         out = f"<b>{n(record['yield'])} g</b>"
         if record.get("dose"):

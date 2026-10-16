@@ -56,6 +56,7 @@ class ShotsConfig:
     keep: bool = False              # keep a shot file after a successful Visualizer upload
     dose: float = 18.0              # default for the runtime dose entity, g
     tail: float = 5.0               # s after the pump stops that still count (drip)
+    ignore_flood: bool = False      # default for the runtime switch: time from profile start
     grinders: list = field(default_factory=list)   # grinder names for the HA select; empty = none
 
 

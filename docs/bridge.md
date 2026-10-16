@@ -65,6 +65,7 @@ Every key `<section>.<key>` can be set as environment variable `<SECTION>_<KEY>`
 | `shots.keep` | false | keep the shot file after a successful Visualizer upload |
 | `shots.dose` | 18.0 | start value of the dose entity, g |
 | `shots.tail` | 5.0 | s after the pump stops that still count for the yield |
+| `shots.ignore_flood` | false | start value of the switch **Shot time without flood phase** (see "Pump runs and shots") |
 | `shots.grinders` | – | grinder names for the **Grinder** select; env: comma-separated (`SHOTS_GRINDERS=Niche Zero,DF64`); one name = preselected |
 | `bridge.report_min_offline` | 10 | see "Setpoint beep" |
 | `bridge.ready_band`, `ready_spread`, `ready_grace` | 0.5 K, 1.0 %-points, 120 s | see "Ready" |
@@ -212,8 +213,21 @@ duration Visualizer shows (the length of `elapsed`), ends at that pump-stop fram
 the drip. Reasons (**seen**, two shots 16.10.): the drip ends 1–2 s after the pump stop;
 after the stop the pressure sensor reads the sealed-off boiler, not the brew pressure,
 and the flow meter rate holds its last value for 1–3 s (docs/protocol.md). The
-firmware's display timer is not reproduced; it starts later (see protocol.md, "Shot
-timer").
+firmware's display timer starts later (see protocol.md, "Shot timer").
+
+**Shot time without flood phase (switch, decision M., 16.10.2026).** With the switch
+**Shot time without flood phase** on (`shots.ignore_flood`, runtime entity, retained),
+`duration` and `first_drop` in the record (Telegram, MQTT, "last shot duration") count
+from the start of the pressure profile instead of the pump start, like the firmware's
+shot timer with "Ignore flood". The profile start is the first frame with a target
+pressure, i.e. when the flood pressure is reached (**seen**: matches the display in two
+shots, 14.4 s → 14, 32.2 s → 32; the display cuts to whole seconds, the bridge keeps one
+decimal). The record then also has `pump_time` (the full `*` time) and
+`"timer": "profile"`. A run without a target pressure falls back to the pump time.
+The Visualizer curve still covers the whole pump run, so Visualizer shows the pump time,
+about 1 s more (decision M.). "Ignore PI" of the firmware is not reproduced (no
+pre-infusion segment in use; how its end shows in the frame is **unverified**).
+Telegram and Home Assistant show the duration with one decimal.
 
 | Class | Rule | Status |
 |---|---|---|
