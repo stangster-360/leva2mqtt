@@ -11,6 +11,9 @@ coffee bags and grinders. Background on the upload queue: [bridge.md](bridge.md#
 | Grind setting, dose | free or Premium | – | text **Grinder setting**, number **Dose** |
 | Free-text bean | free, or Premium without coffee bags | – | text **Bean** (hidden while coffee bags exist) |
 
+The grind setting is free text. A comma between two digits becomes a dot (`2,5` → `2.5`),
+so the same setting has one spelling on Visualizer; everything else is kept as typed.
+
 ## 1. Credentials
 
 The bridge signs in with the e-mail address and password of your Visualizer account

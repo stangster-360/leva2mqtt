@@ -159,7 +159,11 @@ def test_bridge_grinder_setting_and_shot_json():
 
 def test_empty_text_settings_show_none():
     assert parse_setting("bean", "None") == "" and parse_setting("bean", "none ") == ""
-    assert parse_setting("grinder_setting", "2,5") == "2,5"
+    assert parse_setting("grinder_setting", "2,5") == "2.5"
+    assert parse_setting("grinder_setting", " 2.5 ") == "2.5"
+    assert parse_setting("grinder_setting", "1,4,2") == "1.4.2"
+    assert parse_setting("grinder_setting", "12, fine") == "12, fine"
+    assert parse_setting("bean", "Blend 1,5") == "Blend 1,5"
     out = _output()
     out._announce_settings()
     assert "None" in _configs(out)["bean"]["value_template"]

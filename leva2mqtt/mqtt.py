@@ -24,6 +24,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from typing import Any, Callable, Optional
 
 import paho.mqtt.client as mqtt
@@ -120,6 +121,7 @@ BUTTONS: dict[str, tuple[str, str]] = {
 NO_BAG = "None"     # select option: shot not linked to a coffee bag
 NO_GRINDER = "None"
 EMPTY_TEXT = "None"  # shown by the text entities bean / grinder setting when empty
+_DECIMAL_COMMA = re.compile(r"(?<=\d),(?=\d)")
 
 
 class MqttOutput:
@@ -444,7 +446,12 @@ def parse_setting(key: str, payload: str) -> Optional[Any]:
         return v if 0 < v <= 100 else None
     if key in ("bean", "grinder_setting"):
         p = payload.strip()[:100]
-        return "" if p.lower() == EMPTY_TEXT.lower() else p
+        if p.lower() == EMPTY_TEXT.lower():
+            return ""
+        if key == "grinder_setting":
+            # one spelling for Visualizer filters: "2,5" -> "2.5"; anything else as typed
+            p = _DECIMAL_COMMA.sub(".", p)
+        return p
     if key == "grinder":
         p = payload.strip()[:100]
         return "" if p == NO_GRINDER else p
