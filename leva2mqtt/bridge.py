@@ -42,7 +42,7 @@ class Bridge:
         self.cfg = cfg
         b = cfg.bridge
         self.tracker = Tracker(Settings(at_temp_band=b.ready_band, ready_spread=b.ready_spread,
-                                        ready_grace=b.ready_grace,
+                                        ready_grace=b.ready_grace, ready_stable=b.ready_stable,
                                         steam_on=b.steam_threshold,
                                         steam_off=b.steam_threshold - 1.0))
         self.reporter = WakeReporter(b.report_min_offline)

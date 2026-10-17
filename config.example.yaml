@@ -44,6 +44,7 @@ bridge:                     # detection thresholds – all unverified, see docs/
   ready_band: 0.5           # K around the setpoint ("at temperature", needed for ready)
   ready_spread: 1.0         # %-points: last three per-minute heater averages must lie within this
   ready_grace: 120          # s after a shot / hot water in which a boiler drop keeps "ready"
+  ready_stable: 180         # s continuously at temperature = "ready" while warm (eco wake, after shots)
   steam_threshold: 100      # °C boiler temperature for steam mode
   alert_interval: 300       # s between alert polls (display mode for ~1 s, only while idle)
   other_client_quiet: 180   # s without activity of another client (Leva Companion) before MCr again

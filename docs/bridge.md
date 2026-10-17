@@ -68,7 +68,7 @@ Every key `<section>.<key>` can be set as environment variable `<SECTION>_<KEY>`
 | `shots.ignore_flood` | false | start value of the switch **Shot time without flood phase** (see "Pump runs and shots") |
 | `shots.grinders` | – | grinder names for the **Grinder** select; env: comma-separated (`SHOTS_GRINDERS=Niche Zero,DF64`); one name = preselected |
 | `bridge.report_min_offline` | 10 | see "Setpoint beep" |
-| `bridge.ready_band`, `ready_spread`, `ready_grace` | 0.5 K, 1.0 %-points, 120 s | see "Ready" |
+| `bridge.ready_band`, `ready_spread`, `ready_grace`, `ready_stable` | 0.5 K, 1.0 %-points, 120 s, 180 s | see "Ready" |
 | `bridge.steam_threshold` | 100 °C | |
 | `bridge.alert_interval` | 300 s | see "Maintenance alerts" |
 | `bridge.other_client_quiet` | 180 s | see "Other client" |
@@ -153,12 +153,24 @@ The module has no ready flag in `MCr`, and the firmware's `READY` is shown for o
   120 s is enough: after the 13.10. shots the boiler was back above setpoint − 1.5 K
   ~55 s after the end (it then overshoots by ~1.6 K and needs ~4.5 min to settle inside
   ±0.5 K, so "boiler at temperature" goes off and on meanwhile). **seen** (2 shots)
-- After a bridge start or a lost connection the bridge needs three updates (about
-  2–3 min) before it can report ready, also on a machine that is long warm.
+- **Ready while warm** (`bridge.ready_stable`, decided by M. on 17.10.): the boiler has
+  been at temperature without interruption for 180 s, counted after the 120 s lock that
+  follows a shot or hot water. This covers an eco wake, the time after shots and a
+  bridge start or lost connection on a warm machine, where the per-minute averages keep
+  swinging and the first rule rarely fires (**seen**, 16./17.10.). It is not used on a
+  cold start (boiler seen more than 25 K below the setpoint) before the first ready, so
+  there the entity still matches the firmware's beep. A lost connection keeps the
+  cold-start flag; a bridge restart during a cold heat-up does not know it (the boiler
+  is then usually above that limit already) and may report ready a few minutes early.
+- After a bridge start or a lost connection on a warm machine, ready returns after
+  about 3 min (warm rule) or three heater-average updates, whichever comes first.
 
 Replay of the captures: cold start `heatup-cold2` ready at 494.8 s, M.'s note "beep
-10 s ago" at 510 s; warm power cycle `hb-resend` ready at 391.8 s, beep noted at 401 s.
-Two hits; whether the 1-point spread is absolute or relative is **unverified**.
+10 s ago" at 510 s; warm power cycle `hb-resend` ready at 391.8 s, beep noted at 401 s;
+bridge capture 17.10. cold start ready at 782.8 s, beep heard at the same moment as the
+Awtrix notification. Bridge captures with the warm rule: 16.10. after an eco wake and
+bridge restart ready 656 s after the start (heater-average rule: never), 17.10. after a
+5 s link loss ready 180 s later. Three hits for the beep; whether the 1-point spread is absolute or relative is **unverified**.
 
 ## Maintenance alerts
 

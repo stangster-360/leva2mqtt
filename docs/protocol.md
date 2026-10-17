@@ -331,8 +331,14 @@ for 33.5 s (two shots 16.10., plus 15 s for ~16.7 s on 15.10.), **seen**. Both m
 time from the first frame with a target pressure (~1.0 s after the pump start, when the
 flood pressure is reached and the profile begins) to the last frame with `*`, cut to
 whole seconds (14.35 → 14, 32.22 → 32). The firmware manual (shot timer menu, "Ignore
-flood") describes exactly this start. Whether that option is set on M.'s machine is
-**unverified**.
+flood") describes exactly this start, and the option is set on M.'s machine (**seen**,
+16.10.). A third shot (17.10.) fits too: 1.00 → 27.93 s = 26.93 → 26. The bridge measures
+up to the first frame *without* `*` and rounds, so its "profile" time (27.2 s) can be up
+to ~1.2 s above the display (**seen**, 3/3).
+
+The firmware timer is readable in display frames: an alert poll (`MC@`) 0.5 s after that
+shot showed the main screen with `26s 40.9g` (last shot time and weight). **seen** (one
+shot)
 
 **Pressure after the pump stops.** The sensor sits in the cold line between pump and
 boiler (ito installation manual; M.'s Silvia confirmed, 16.10.). When the pump stops, the
@@ -452,6 +458,11 @@ Cold start (first frame 35.6 °C, display stream, no interaction for 55 min):
 - The eco and standby timers count from power-on / last activity (30 min / 45 min
   here), not from reaching the setpoint. Whether any serial command or a shot restarts
   them: **unverified**.
+- 16. and 17.10. (bridge captures, no button pressed): eco came 60 min 22 s after the
+  connect both times (10:13:14 → 11:13:36, 10:38:13 → 11:38:36), so the eco timer is set
+  to about 60 min now. A shot 59 min after power-on (17.10., 11:37:08) did **not** delay
+  it: eco followed 60 s after the pump stopped. **seen** (two captures; a shot does not
+  restart the timer, one case)
 - A display frame `Auto save` appears while `MCu` walks through the setup menu
   (end of the dump). It is an artefact of the dump, not a machine state. **seen**
 

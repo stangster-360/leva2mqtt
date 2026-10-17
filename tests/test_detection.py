@@ -68,9 +68,16 @@ def feed_minutes(tracker, temps_and_avgs, t0=0.0):
     return t
 
 
+def cold_tracker():
+    """Tracker after a cold switch-on (boiler at room temperature)."""
+    tr = Tracker()
+    feed(tr, [frame(temp=20.0, heater=100, heater_avg=None)])
+    return tr
+
+
 def test_ready_follows_heater_average():
     # cold start 13.10.: 22.4 -> 16.0 -> 10.4 -> 10.7 -> 10.1, beep after the 10.1 update
-    tr = Tracker()
+    tr = cold_tracker()
     feed_minutes(tr, [(89.9, 22.4), (90.5, 16.0), (90.3, 10.4), (90.05, 10.7)])
     assert tr.at_temperature and not tr.ready
     feed_minutes(tr, [(90.25, 10.1)])
@@ -79,7 +86,7 @@ def test_ready_follows_heater_average():
 
 def test_ready_spread_must_be_below_one_point():
     # warm power cycle 12.10.: 3.7 -> 4.7 -> 4.1 (spread 1.0, no beep) -> 4.7 (beep)
-    tr = Tracker()
+    tr = cold_tracker()
     feed_minutes(tr, [(89.95, 3.7), (90.15, 4.7), (89.9, 4.1)])
     assert not tr.ready
     feed_minutes(tr, [(90.05, 4.7)])
@@ -93,9 +100,59 @@ def test_ready_needs_boiler_at_temperature():
 
 
 def test_unchanged_average_counts_as_update():
-    tr = Tracker()
+    tr = cold_tracker()
     feed_minutes(tr, [(90.0, 5.0), (90.0, 5.0), (90.0, 5.0)])
     assert tr.ready
+
+
+def test_warm_ready_after_three_minutes_in_band():
+    # eco wake / lost link 16./17.10.: per-minute averages swing between ~2 and ~8 %,
+    # the heater-average rule never fires; three minutes within ±0.5 K make it ready
+    tr = Tracker()
+    t = feed_minutes(tr, [(85.5, 2.4), (89.0, 8.0)])
+    assert not tr.ready
+    t = feed_minutes(tr, [(90.3, 2.4), (89.7, 6.4)], t0=t)
+    assert not tr.ready
+    t = feed_minutes(tr, [(90.2, 2.6)], t0=t)
+    assert not tr.ready                       # 179.75 s in band
+    feed(tr, [frame(temp=90.2, heater_avg=2.6)], t0=t)
+    assert tr.ready and tr.state == READY
+
+
+def test_warm_ready_restarts_when_leaving_band():
+    tr = Tracker()
+    t = feed_minutes(tr, [(90.3, 2.4), (90.2, 6.4)])
+    t = feed(tr, [frame(temp=89.3, heater_avg=6.4)], t0=t)   # one frame outside ±0.5 K
+    t = feed_minutes(tr, [(90.3, 2.4), (90.2, 6.4)], t0=t)
+    assert not tr.ready
+    t = feed_minutes(tr, [(90.1, 2.4)], t0=t)
+    feed(tr, [frame(temp=90.1, heater_avg=2.4)], t0=t)
+    assert tr.ready
+
+
+def test_warm_ready_waits_for_lock_after_shot():
+    tr = Tracker()
+    t = feed(tr, [frame(pump="*", temp=90.0, heater_avg=5.0)] * 100)
+    # boiler back in band at once: the lock (ready_grace) runs first, then 3 min in band
+    t = feed_minutes(tr, [(90.2, 2.4), (90.1, 8.0), (90.3, 3.0), (90.2, 7.0)], t0=t)
+    assert not tr.ready
+    feed_minutes(tr, [(90.1, 2.4)], t0=t)
+    assert tr.ready
+
+
+def test_no_warm_ready_on_cold_start():
+    # cold start 17.10.: in band for minutes before the firmware beeps; only the
+    # heater-average rule may report ready until then
+    tr = cold_tracker()
+    feed_minutes(tr, [(90.3, 30.0), (90.1, 22.0), (89.8, 17.0), (90.2, 14.0), (90.0, 12.5)])
+    assert tr.at_temperature and not tr.ready
+
+
+def test_lost_link_keeps_cold_start():
+    tr = cold_tracker()
+    tr.link_down()
+    feed_minutes(tr, [(90.3, 30.0), (90.1, 22.0), (89.8, 17.0), (90.2, 14.0)])
+    assert not tr.ready
 
 
 def test_ready_kept_during_shot_lost_after():

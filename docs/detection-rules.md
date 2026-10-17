@@ -53,8 +53,17 @@ reproduced from `MCr` in two captures, so the bridge uses the same condition:
 |---|---|---|
 | heating | awake and temperature `f[7:13]` more than 1.5 K below the setpoint `f[13:18]` | **seen** |
 | boiler at temperature | temperature within ±0.5 K of the setpoint | **seen** |
-| ready | boiler at temperature **and** the last three values of the per-minute heater average `f[73:78]` (it updates once a minute) lie within less than 1.0 percentage point. Evaluate at each update of the field. Reproduced the firmware's ready beep to within seconds twice (cold start ~8.3 min, warm power cycle ~5.7 min) | **unverified** (2 hits) |
+| ready (heater average) | boiler at temperature **and** the last three values of the per-minute heater average `f[73:78]` (it updates once a minute) lie within less than 1.0 percentage point. Evaluate at each update of the field. Reproduced the firmware's ready beep to within seconds three times (cold starts ~8.3 and ~13 min, warm power cycle ~5.7 min) | **unverified** (3 hits) |
+| ready (warm) | boiler continuously at temperature for 180 s, counted after the 120 s lock that follows a pump run or hot water. Not on a cold start (boiler seen more than 25 K below the setpoint) before the first ready | **decision** (M., 17.10.) |
 
+- Why the warm rule: in warm equilibrium the per-minute averages swing between ~2 and
+  ~8 % with a period of about 3 min, so three consecutive values almost never lie within
+  1 point. After an eco wake, a shot or a lost link the heater-average rule did not fire
+  for 30 min although the boiler held ±0.4 K (**seen**, 16./17.10.). Whether the firmware
+  beeps again in these cases is **unverified**; the warm rule is the bridge's own.
+- The cold-start exception keeps the entity in step with the beep: on 17.10. the boiler
+  was in band ~4.5 min before the beep; the warm rule alone would have fired at 513 s
+  instead of 783 s. Cold starts begin at ~20 °C, an eco wake at ~85 °C (**seen**).
 - Leaving "ready": temperature more than 1.5 K below the setpoint, except during a pump
   run or hot water and for 120 s afterwards (recovery; decision M., 13.10., duration
   **unverified**); eco, standby or steam mode. Whether the firmware re-arms its beep

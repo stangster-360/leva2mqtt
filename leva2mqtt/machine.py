@@ -43,6 +43,11 @@ class Settings:
     avg_period: float = 60.0        # s between updates of the per-minute average (seen)
     ready_grace: float = 120.0      # s after a pump run / hot water in which a boiler drop does
                                     # not end ready (recovery after a shot; decided by M., unverified)
+    ready_stable: float = 180.0     # s: boiler continuously at temperature = ready while warm
+                                    # (eco wake, after shots, after a lost link; decided by M., 17.10.)
+    cold_margin: float = 25.0       # K below the setpoint = cold start: only the heater-average
+                                    # rule until the first ready (cold starts at ~20 °C, eco wake
+                                    # at ~85 °C, seen 16./17.10.)
     steam_on: float = 100.0         # °C boiler with setpoint < steam_on = steam mode (threshold unverified)
     steam_off: float = 99.0         # °C: steam mode left (unverified)
     hot_water_min_ml: int = 5       # flow meter increase without '*' (one capture)
@@ -64,6 +69,9 @@ class Tracker:
         self._avgs: list[float] = []          # last per-minute heater averages, oldest first
         self._avg_t: Optional[float] = None   # time of the last update of the field
         self._grace_until = 0.0               # ready survives a boiler drop until then
+        self._band_since: Optional[float] = None  # boiler continuously at temperature since
+        self._cold = False                    # cold start until the first ready (kept over a
+                                              # lost link)
         self._pump_end: Optional[float] = None
         self._pump_on = False
         self._pump_start: Optional[float] = None
@@ -202,6 +210,7 @@ class Tracker:
         self.ready = False
         self._avgs = []
         self._avg_t = None
+        self._band_since = None
 
     def _avg_updated(self, f: Frame, t: float) -> bool:
         """Track the per-minute heater average (pos 73-77). Returns True on an update.
@@ -222,14 +231,24 @@ class Tracker:
         return True
 
     def _update_ready(self, f: Frame, t: float) -> None:
-        """Ready like the firmware's ready beep (docs/detection-rules.md, section 3):
-        boiler within ±0.5 K of the setpoint and the last three per-minute heater
-        averages within less than 1 percentage point, evaluated at each update of
-        the average. Two hits, unverified."""
+        """Ready, two rules (docs/detection-rules.md, section 3):
+
+        - cold start, like the firmware's ready beep: boiler within ±0.5 K of the
+          setpoint and the last three per-minute heater averages within less than
+          1 percentage point, evaluated at each update of the average (unverified,
+          three hits);
+        - warm: boiler continuously within ±0.5 K for ready_stable seconds, counted from
+          the end of the ready_grace lock after a pump run / hot water. Not on a cold
+          start (boiler seen more than cold_margin below the setpoint) before the first
+          ready, so the entity still matches the firmware's beep there. In warm
+          equilibrium the per-minute averages swing by several points, so the first
+          rule rarely fires after an eco wake, a shot or a lost link (seen 16./17.10.).
+        """
         temp, sp = f.temperature, f.setpoint
         updated = self._avg_updated(f, t)
         if temp is None or sp is None:
             self.at_temperature = False
+            self._band_since = None
             return
         self.at_temperature = abs(temp - sp) <= self.s.at_temp_band
         if self.steam:
@@ -238,6 +257,12 @@ class Tracker:
         busy = self._pump_on or self.hot_water
         if busy:
             self._grace_until = t + self.s.ready_grace
+        if temp < sp - self.s.cold_margin:
+            self._cold = True
+        if busy or not self.at_temperature or t < self._grace_until:
+            self._band_since = None
+        elif self._band_since is None:
+            self._band_since = t
         if self.ready:
             # lost when the boiler is still too far below the setpoint ready_grace
             # seconds after a pump run / hot water (eco, standby and steam reset it
@@ -248,6 +273,11 @@ class Tracker:
         if (updated and self.at_temperature and len(self._avgs) == self.s.ready_samples
                 and max(self._avgs) - min(self._avgs) < self.s.ready_spread):
             self.ready = True
+        elif (not self._cold and self._band_since is not None
+              and t - self._band_since >= self.s.ready_stable):
+            self.ready = True
+        if self.ready:
+            self._cold = False
 
 
 class WakeReporter:
